@@ -1434,6 +1434,7 @@ function newsItem(n, short = false) {
 let benzingaRows = [];
 let benzingaStatus = "Loading Benzinga headlines…";
 let benzingaRequest;
+let benzingaNeedsAccount = false;
 async function loadBenzinga() {
   benzingaRequest?.abort();
   const request = new AbortController();
@@ -1444,7 +1445,8 @@ async function loadBenzinga() {
     });
     const data = await response.json();
     if (benzingaRequest !== request) return;
-    if (response.status === 401 || data.connected === false) {
+    benzingaNeedsAccount = response.status === 401 || data.connected === false;
+    if (benzingaNeedsAccount) {
       benzingaRows = [];
       benzingaStatus = "Sign in and connect Alpaca Paper from Account to see Benzinga headlines.";
     } else if (!response.ok) {
@@ -1462,6 +1464,7 @@ async function loadBenzinga() {
 if (page === "news") {
   document.addEventListener("paper-connection-changed",()=>{
     benzingaRows = [];
+    benzingaNeedsAccount = false;
     benzingaStatus = "Loading Benzinga headlines…";
     renderNews();
     void loadBenzinga();
@@ -1493,6 +1496,13 @@ function renderNews() {
     ? row.governmentFeed || governmentRiskReason(row.headline) : source === row.source)), picks);
   $("headlines").replaceChildren(...(news.length ? news.map(row => newsItem(row))
     : [el("li",source === "Benzinga" ? benzingaStatus : source ? "No headlines from this source today" : "No additional headlines today")]));
+  if (source === "Benzinga" && benzingaNeedsAccount && !news.length &&
+      [...$("dashboard-page").options].some(option=>option.value === "/account")) {
+    const connect = el("button","Open Account");
+    connect.type = "button";
+    connect.addEventListener("click",()=>$("dashboard-page").dispatchEvent(new Event("open-account")));
+    $("headlines").firstElementChild.append(" ",connect);
+  }
   if (source === "SEC filings" && !news.length) {
     const link = el("a","View SEC filings on EDGAR");
     link.href = "https://www.sec.gov/search-filings";

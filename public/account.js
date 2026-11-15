@@ -1,4 +1,4 @@
-import { disableDevicePush } from "./device-alerts.js?v=206";
+import { disableDevicePush } from "./device-alerts.js?v=207";
 import { publicRoute } from "./public-data.js";
 
 const config = await fetch("./account-api/config", {cache:"no-store"}).then(response =>
@@ -87,39 +87,36 @@ if (config?.accountMode) {
   const onPortfolio = paramsForScreen.get("screen") === "robinhood-portfolio" || location.hash === "#robinhood-portfolio";
   const amount = value => value != null && Number.isFinite(Number(value)) ? money.format(Number(value)) : "unavailable";
   const snapshotPanel = document.getElementById("robinhood-snapshot-panel");
-  const snapshotForm = document.getElementById("robinhood-snapshot-import");
   const snapshotStatus = document.getElementById("robinhood-snapshot-status");
-  const snapshotFile = document.getElementById("robinhood-snapshot-file");
   const snapshotAccount = document.getElementById("robinhood-snapshot-account");
   const snapshotHoldings = document.getElementById("robinhood-snapshot-holdings");
-  let savedSnapshot;
   let snapshotRequest = 0;
   function showSnapshot(snapshot) {
-    savedSnapshot = snapshot;
     snapshotHoldings.hidden = !snapshot;
     document.dispatchEvent(new CustomEvent("robinhood-snapshot",{detail:snapshot}));
   }
   function showSnapshotSignIn() {
     ++snapshotRequest;
     showSnapshot(null);
-    snapshotForm.reset();
-    snapshotForm.hidden = true;
     snapshotAccount.hidden = false;
-    snapshotStatus.textContent = "Sign in to import your Robinhood Portfolio snapshot.";
+    snapshotStatus.textContent = "Sign in to view your Robinhood Portfolio.";
   }
-  async function getSnapshot() {
+  async function getSnapshot(method = "GET") {
     const request = ++snapshotRequest;
     try {
-      const response = await call("robinhood-snapshot");
+      const response = await call("robinhood-snapshot",method);
       if (request !== snapshotRequest) return;
       if (response.status === 401) return showSnapshotSignIn();
-      if (!response.ok) throw Error("Couldn’t load your Robinhood snapshot.");
-      const {snapshot} = await response.json();
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error ?? "Couldn’t load your Robinhood snapshot.");
+      const {snapshot,updated,sourceConfigured} = data;
       if (request !== snapshotRequest) return;
       snapshotAccount.hidden = true;
-      snapshotForm.hidden = false;
       showSnapshot(snapshot);
-      snapshotStatus.textContent = snapshot ? "" : "Upload the JSON export from the original Robinhood Portfolio page.";
+      snapshotStatus.textContent = method === "POST"
+        ? (sourceConfigured === false ? "Live snapshot source is unavailable."
+          : updated ? "New Robinhood snapshot imported." : "No newer Robinhood snapshot is available.")
+        : (snapshot ? "" : "No Robinhood snapshot is available.");
     } catch (error) {
       if (request === snapshotRequest) snapshotStatus.textContent = error.message;
       return false;
@@ -128,49 +125,12 @@ if (config?.accountMode) {
   if (onPortfolio) {
     snapshotPanel.hidden = false;
     snapshotAccount.addEventListener("click",openAccount);
-    document.getElementById("robinhood-snapshot-download").addEventListener("click",()=>{
-      if (!savedSnapshot) return;
-      const url = URL.createObjectURL(new Blob([JSON.stringify(savedSnapshot,null,2)+"\n"],{type:"application/json"}));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "robinhood-account-total.json";
-      link.click();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);
-    });
     void getSnapshot();
-    document.addEventListener("refresh-account-section",event=>{event.detail.push(getSnapshot());});
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(getSnapshot("POST"));});
     addEventListener("pageshow",event=>{
       if (event.persisted) {
         showSnapshot(null);
         void getSnapshot();
-      }
-    });
-    snapshotForm.addEventListener("submit",async event=>{
-      event.preventDefault();
-      const button = snapshotForm.querySelector("button");
-      if (button.disabled) return;
-      const request = ++snapshotRequest;
-      button.disabled = true;
-      try {
-        const file = snapshotFile.files[0];
-        if (!file || file.size > 65536) throw Error("Choose a Robinhood Portfolio JSON file up to 64 KiB.");
-        let snapshot;
-        try { snapshot = JSON.parse(await file.text()); }
-        catch { throw Error("This file does not contain valid JSON."); }
-        if (request !== snapshotRequest) return;
-        const response = await call("robinhood-snapshot","PUT",snapshot);
-        if (request !== snapshotRequest) return;
-        if (response.status === 401) return showSnapshotSignIn();
-        const data = await response.json();
-        if (request !== snapshotRequest) return;
-        if (!response.ok) throw Error(data.error ?? "The snapshot could not be imported.");
-        showSnapshot(data.snapshot);
-        snapshotForm.reset();
-        snapshotStatus.textContent = "Snapshot imported.";
-      } catch (error) {
-        if (request === snapshotRequest) snapshotStatus.textContent = error.message;
-      } finally {
-        button.disabled = false;
       }
     });
   }

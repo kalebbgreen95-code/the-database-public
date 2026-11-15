@@ -1859,7 +1859,7 @@ if (refreshButton) {
     refreshButton.setAttribute("aria-busy", "true");
     status.textContent = "Refreshing…";
     try {
-      if (page === "usage") {
+      if (page === "usage" || page === "robinhood-portfolio") {
         showPageTransfer();
         await refreshAccountSection();
         status.textContent = "";
@@ -1891,9 +1891,8 @@ if (refreshButton) {
           return;
         }
       }
-      if (page === "robinhood-portfolio" || page === "notifications" || page === "ai-watchlist" || (page === "opportunities" && !liveCrypto)) {
-        status.textContent = page === "robinhood-portfolio" ? "Saved snapshot reloaded where available. Import a new file for new Robinhood holdings."
-          : page === "notifications" ? "Inbox reloaded." : "Screen recalculated from the current demo data.";
+      if (page === "notifications" || page === "ai-watchlist" || (page === "opportunities" && !liveCrypto)) {
+        status.textContent = page === "notifications" ? "Inbox reloaded." : "Screen recalculated from the current demo data.";
         return;
       }
       showRefreshed(status);

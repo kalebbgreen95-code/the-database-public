@@ -2,6 +2,7 @@ const enable = document.getElementById("enable-push");
 const test = document.getElementById("test-notification");
 const status = document.getElementById("phone-status");
 const result = document.getElementById("push-result");
+const notificationsOption = document.querySelector('#dashboard-page option[value="/notifications"]');
 const supported = isSecureContext && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
 const worker = new URL("./notification-worker.js",import.meta.url);
 const endpoint = new URL("./account-api/browser-push",import.meta.url);
@@ -20,6 +21,7 @@ function renderState() {
   const permission = supported ? Notification.permission : "unsupported";
   enable.disabled = permission === "unsupported";
   const active = Boolean(subscription) && permission === "granted";
+  if (notificationsOption) notificationsOption.hidden = active;
   enable.textContent = active ? "Disable push notifications" : "Enable push notifications";
   test.hidden = !active;
   status.textContent = permission === "unsupported" ? "This browser does not support push notifications."

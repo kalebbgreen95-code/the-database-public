@@ -3,6 +3,41 @@ import test from "node:test";
 import { createTenantService, openConnectionStore, createHostedConnectionStore } from "./lib/tenant-service.mjs";
 import { randomBytes } from "node:crypto";
 
+test("Robinhood refresh only imports newer snapshots for the configured owner", async () => {
+  const owner = "11111111-1111-1111-1111-111111111111";
+  const other = "22222222-2222-2222-2222-222222222222";
+  const origin = "https://demo.example";
+  const snapshot = {asOf:"2026-11-15T20:00:00.000Z",accountValue:100,positions:[]};
+  let saved;
+  let upstreamCalls = 0;
+  const handler = createTenantService({
+    authUrl:"https://auth.example",publishableKey:"mock-key",appOrigin:origin,store:{},
+    robinhoodSource:{ownerId:owner,url:"https://snapshots.example/robinhood.json",token:"relay-key"},
+    snapshotStore:{
+      get:async id => id === owner ? saved : null,
+      save:async (id,value) => { assert.equal(id,owner); saved = value; return true; },
+    },
+    fetcher:async (url,options) => {
+      if (new URL(url).hostname === "auth.example") {
+        return Response.json({id:options.headers.authorization.endsWith("owner") ? owner : other});
+      }
+      upstreamCalls++;
+      assert.equal(options.headers.Authorization,"Bearer relay-key");
+      assert.equal(options.redirect,"error");
+      return Response.json(snapshot);
+    },
+  });
+  const refresh = suffix => handler({
+    path:"/account-api/robinhood-snapshot",method:"POST",
+    headers:new Headers({origin,authorization:"Bearer "+"x".repeat(24)+suffix}),
+  });
+  assert.deepEqual((await refresh("other")).data,{snapshot:null,sourceConfigured:false});
+  assert.equal(upstreamCalls,0);
+  assert.deepEqual((await refresh("owner")).data,{snapshot,updated:true});
+  assert.deepEqual((await refresh("owner")).data,{snapshot,updated:false});
+  assert.deepEqual(saved,snapshot);
+});
+
 test("a paper connection is accessible only to its authenticated owner", async () => {
   const store = openConnectionStore(":memory:", randomBytes(32));
   try {

@@ -1,3 +1,5 @@
+import { publicFeedUpdate } from "./lib/economic-news.mjs";
+import manifest from "./package.json" with { type: "json" };
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
@@ -29,9 +31,23 @@ function acceptsGzip(value = "") {
   }));
   return (choices.get("gzip") ?? choices.get("*") ?? 0) > 0;
 }
+let publicUpdate;
+function sharedPublicUpdate() {
+  const now = Date.now();
+  if (!publicUpdate || now >= publicUpdate.expires) {
+    publicUpdate = {expires:now+10*60000, result:publicFeedUpdate(new Date(now)).catch(()=>null)};
+  }
+  return publicUpdate.result;
+}
 export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tenantService,handleAuth) {
   res.setHeader("X-Content-Type-Options","nosniff");
   const path = req.url?.split("?")[0];
+  if (path === "/api/public-update" && req.method === "GET") {
+    const result = await sharedPublicUpdate();
+    res.writeHead(result ? 200 : 503,{"Content-Type":"application/json","Cache-Control":"public, max-age=60"});
+    res.end(JSON.stringify({version:manifest.version,...result}));
+    return;
+  }
   if (path?.startsWith("/account-api/")) {
     if (handleAuth) return handleAuth(req,res,handleAccount);
     return handleAccount();

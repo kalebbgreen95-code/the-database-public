@@ -1424,7 +1424,15 @@ function newsItem(n, short = false) {
 
 function renderNews() {
   if (!current) return;
-  const source = $("news-source").value;
+  const sourcePicker = $("news-source");
+  const previous = sourcePicker.value;
+  const sources = current.publicSources ?? [];
+  const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source)]);
+  sourcePicker.replaceChildren(new Option("All sources",""),...[...labels].filter(Boolean).filter(label=>label !== "U.S. Treasury").map(label=>new Option(label,label)));
+  sourcePicker.value = labels.has(previous) ? previous : "";
+  const source = sourcePicker.value;
+  $("news-coverage").textContent = sources.filter(feed=>feed.source !== "U.S. Treasury").map(feed=>
+    feed.source + (feed.available ? "" : " (unavailable)")).join(" · ");
   const today = easternDay.format(new Date(current.updatedAt));
   $("news-date").textContent = new Date(current.updatedAt).toLocaleDateString("en-US", {
     timeZone: timezone, dateStyle: "full",
@@ -1650,11 +1658,34 @@ function setConnection(ok) {
   indicator.textContent = ok ? "Connected" : "Disconnected";
 }
 
+let latestFeeds;
+let publicStatus;
+async function refreshPublic() {
+  const response = await fetch(new URL("api/public-update",appRoot),{cache:"no-cache",signal:AbortSignal.timeout(20000)});
+  if (!response.ok) throw Error("The public feed check failed.");
+  const updated = await response.json();
+  if (updated.version !== document.querySelector('meta[name="app-version"]').content) {
+    location.reload();
+    return false;
+  }
+  latestFeeds = updated;
+  return true;
+}
+
 async function refreshDashboard(refresh = false) {
   try {
     const response = await readDemo("/api/status", {refresh});
     if (!response.ok) throw Error("Snapshot unavailable");
     const data = await response.json();
+    if (latestFeeds) {
+      if (latestFeeds.treasury) data.treasury = latestFeeds.treasury;
+      const refreshed = new Set(latestFeeds.sources.filter(feed=>feed.available).map(feed=>feed.source));
+      data.news = [...latestFeeds.news,...data.news.filter(row=>!refreshed.has(row.source))]
+        .sort((a,b)=>b.timestamp-a.timestamp);
+      data.publicSources = latestFeeds.sources;
+      data.criticalNewsCheck = {checkedAt:latestFeeds.checkedAt,status:refreshed.size
+        ? (latestFeeds.sources.some(feed=>!feed.available)?"partial":"ok") : "unavailable"};
+    }
     await waitForDashboardPress();
     render(data);
     const rates = data.treasury;
@@ -1662,7 +1693,7 @@ async function refreshDashboard(refresh = false) {
       ? rates.date + " · " + rates.rates.map((n,i) => ["3M","2Y","10Y","30Y"][i] + " " + n.toFixed(2) + "%").join(" · ")
       : "Public rates were unavailable for this snapshot.";
     const version = document.querySelector('meta[name="app-version"]').content;
-    $("app-version-status").textContent = "v" + version + " · Data refreshed at " + date(data.updatedAt) + " ET";
+    $("app-version-status").textContent = "v" + version + " · Data refreshed at " + date(latestFeeds?.checkedAt ?? data.updatedAt) + " ET";
     if (page === "opportunities") {
       refreshPotentialBuyPrices(data.market);
       renderCryptoBuys(data);
@@ -1684,10 +1715,20 @@ const updateButton = $("update-app");
 updateButton.addEventListener("click",async()=>{
   updateButton.disabled = true;
   updateButton.setAttribute("aria-busy","true");
+  const status = $("app-version-status");
+  const previous = status.textContent;
+  clearTimeout(publicStatus);
+  status.textContent = "Checking for updates…";
   try {
-    if (await refreshDashboard(true) && (page === "ai-watchlist" || page === "opportunities")) {
-      await loadChecklistBuys(page === "ai-watchlist");
-    }
+    if (!await refreshPublic()) return;
+    if (!await refreshDashboard(true)) throw Error("Dashboard refresh failed.");
+    if (page === "asset") await loadAssetDetails();
+    if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
+    const refreshed = status.textContent;
+    status.textContent += latestFeeds.sources.some(feed=>!feed.available) ? " · Some feeds unavailable" : " · Refreshed";
+    publicStatus = setTimeout(()=>{status.textContent=refreshed;},3000);
+  } catch {
+    status.textContent = previous + " · Update couldn’t be completed";
   } finally {
     updateButton.disabled = false;
     updateButton.removeAttribute("aria-busy");
@@ -1702,6 +1743,7 @@ if (refreshButton) {
     refreshButton.setAttribute("aria-busy", "true");
     status.textContent = "Refreshing…";
     try {
+      if (page === "news" && !await refreshPublic()) return;
       if (!await refreshDashboard(true)) throw Error("Snapshot unavailable");
       if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
       showRefreshed(status);

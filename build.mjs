@@ -1,10 +1,10 @@
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { replay } from "./lib/demo.mjs";
-import { openData } from "./lib/providers.mjs";
+import { publicFeedUpdate } from "./lib/economic-news.mjs";
 
 import { dashboardData } from "./lib/dashboard-data.mjs";
 const now = new Date();
-const data = process.argv.includes("--offline") ? {treasury:null,headlines:[]} : await openData(now);
+const data = process.argv.includes("--offline") ? {treasury:null,news:[],sources:[],checkedAt:now.toISOString()} : await publicFeedUpdate(now);
 const demo = replay(+now);
 const snapshot = dashboardData(demo, data, now.toISOString());
 const dir = new URL("./dist/",import.meta.url);
@@ -18,4 +18,4 @@ const { version } = JSON.parse(await readFile(new URL("./package.json",import.me
 const release = now.getTime().toString(36);
 await writeFile(new URL("index.html",dir), index.replace("__APP_VERSION__",version).replace(/(\.\/(?:style\.css|dashboard\.js|account\.js))(?:\?v=\w+)?"/g, "$1?v="+release+'"'));
 await writeFile(new URL("snapshot.json",dir),JSON.stringify(snapshot));
-console.log("Built public demo: "+demo.trades.length+" simulated fills; public Treasury "+(data.treasury?"available":"unavailable")+"; Fed headlines "+data.headlines.length+".");
+console.log("Built public demo: "+demo.trades.length+" simulated fills; public Treasury "+(data.treasury?"available":"unavailable")+"; public headlines "+data.news.length+".");

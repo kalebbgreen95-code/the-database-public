@@ -767,7 +767,7 @@ function renderRobinhood(data, portfolioOnly = false, imported = null) {
   const listPrefix = imported ? "robinhood-" : portfolioOnly ? "portfolio-" : "watchlist-";
   const synced = imported ?? (portfolioOnly ? data.robinhoodPortfolio : null);
   const asOf = synced?.asOf ?? data?.robinhood.asOf;
-  const importLabel = imported ? "Robinhood snapshot" : synced ? "Demo portfolio" : "Demo snapshot";
+  const importLabel = imported ? "Robinhood sync" : synced ? "Demo portfolio" : "Demo snapshot";
   $(portfolioOnly ? listPrefix + "imported" : "imported").textContent = asOf
     ? importLabel + " · " + date(asOf) + " ET" : "No demo snapshot";
   const marketBySymbol = new Map((data?.market ?? []).map(row => [row.symbol, row]));
@@ -790,7 +790,11 @@ function renderRobinhood(data, portfolioOnly = false, imported = null) {
     const marketValue = hasPrices ? holdings.reduce((sum, { price, quantity }) => sum + price * quantity, 0) : null;
     const hasAccountValue = Number.isFinite(synced?.accountValue);
     const usesMarketQuotes = !imported && holdings.some(item => item.quoteSource !== "Demo snapshot");
-    $(listPrefix + "value").textContent = hasAccountValue ? (imported ? "Robinhood account total · " : "Demo portfolio value · ") + money(synced.accountValue)
+    const valueLabel = synced?.valueScope === "combined-estimate" ? "Estimated Robinhood account value"
+      : synced?.valueScope === "brokerage" ? "Brokerage value excluding crypto"
+      : imported ? (holdings.some(item=>item.type === "crypto") ? "Robinhood account value" : "Reported brokerage value")
+      : "Demo portfolio value";
+    $(listPrefix + "value").textContent = hasAccountValue ? valueLabel + " · " + money(synced.accountValue)
       : (usesMarketQuotes ? "Estimated holdings value · " : "Holdings value · ") +
         (Number.isFinite(marketValue) ? money(marketValue) : "Unavailable");
     const totalBasis = holdings.reduce((sum, item) => sum + Math.abs(item.quantity) * item.averageCost, 0);
@@ -835,14 +839,20 @@ function renderRobinhood(data, portfolioOnly = false, imported = null) {
       const price = el("span", shownPrice > 0 ? watchlistQuote.format(shownPrice) : "—");
       price.className = "watchlist-price " + direction;
       quote.append(price);
-      if (portfolioOnly) quote.append(el("small", gain === null ? "Gain/loss unavailable" : percent(gain) + " vs. cost"));
+      if (portfolioOnly) {
+        const cost = el("small", gain === null ? "Gain/loss unavailable" : "");
+        if (gain !== null) cost.append(el("span",percent(gain),direction)," vs. cost");
+        quote.append(cost);
+      }
       const quoteDetails = synced && shownPrice > 0
         ? el("small", quoteSource + (quoteAt ? " · " + date(quoteAt) + " ET" : "")) : null;
       if (!synced && market?.delivery === "Coinbase Exchange") quote.append(el("small", market.delivery));
       if (!synced && market?.price > 0 && !market.fresh) quote.append(el("small", "Last quote"));
       const content = el("span", "");
       content.className = portfolioOnly ? "watchlist-row portfolio-row" : "watchlist-row";
-      content.append(name, watchlistSparkline(market?.recentCloses), quote);
+      const chart = watchlistSparkline(market?.recentCloses);
+      if (imported && chart.tagName !== "CANVAS") chart.hidden = true;
+      content.append(name, chart, quote);
       if (quoteDetails) {
         quoteDetails.className = "portfolio-quote-details";
         content.append(quoteDetails);
@@ -964,17 +974,15 @@ function renderOverviewBalances() {
     return;
   }
   const account = overviewPaper?.account;
-  const broker = account ?? current?.broker;
-  if (!broker) return;
-  const amount = value => value != null && Number.isFinite(Number(value)) ? money(Number(value)) : "unavailable";
-  if (account) {
-    overviewEquity.textContent = "Alpaca Paper equity " + amount(account.equity);
-    overviewCash.textContent = "Paper cash " + amount(account.cash);
-  } else {
-    const tone = paperEquityTone(broker.equity);
-    if (tone) overviewEquity.append("Demo equity ", el("span",amount(broker.equity),tone));
-    if (broker.cash != null) overviewCash.textContent = "Demo cash " + amount(broker.cash);
+  if (!account) {
+    overviewEquity.textContent = overviewPaper?.status === "signed-out"
+      ? "Sign in to view Alpaca Paper balances"
+      : overviewPaper?.status === "disconnected" ? "Connect Alpaca Paper to view balances" : "";
+    return;
   }
+  const amount = value => value != null && Number.isFinite(Number(value)) ? money(Number(value)) : "unavailable";
+  overviewEquity.textContent = "Alpaca Paper equity " + amount(account.equity);
+  overviewCash.textContent = "Paper cash " + amount(account.cash);
 }
 document.addEventListener("overview-paper-balance",event => {
   overviewPaper = event.detail;

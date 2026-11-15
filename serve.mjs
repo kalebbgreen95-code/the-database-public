@@ -122,7 +122,7 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   if (process.env.DEMO_ACCOUNT_ORIGIN) {
     const { createTenantService, openConnectionStore, createHostedConnectionStore, createHostedSnapshotStore } = await import("./lib/tenant-service.mjs");
     const env = Object.fromEntries(Object.entries(process.env)
-      .filter(([name]) => /^(?:DEMO_|USAGE_RENDER_|ROBINHOOD_SNAPSHOT_|SNAPTRADE_)/.test(name) || name === "RENDER_SERVICE_ID")
+      .filter(([name]) => /^(?:DEMO_|USAGE_RENDER_|ROBINHOOD_SNAPSHOT_|ROBINHOOD_CRYPTO_|SNAPTRADE_)/.test(name) || name === "RENDER_SERVICE_ID")
       .map(([name, value]) => [name, value.trim()]));
     const { DEMO_ACCOUNT_ORIGIN, DEMO_ACCOUNT_DB, DEMO_ACCOUNT_ENCRYPTION_KEY,
       DEMO_AUTH_URL, DEMO_AUTH_PUBLISHABLE_KEY, DEMO_SUPABASE_SECRET_KEY } = env;
@@ -155,8 +155,13 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       : undefined;
     if (env.SNAPTRADE_CLIENT_ID && env.SNAPTRADE_CONSUMER_KEY && env.SNAPTRADE_ROBINHOOD_LAST4 && env.ROBINHOOD_SNAPSHOT_OWNER_ID) {
       const {createSnapTradeSource} = await import("./lib/snaptrade.mjs");
+      const {createRobinhoodCryptoSource} = await import("./lib/robinhood-crypto.mjs");
+      const cryptoSource = env.ROBINHOOD_CRYPTO_API_KEY && env.ROBINHOOD_CRYPTO_PRIVATE_KEY && env.ROBINHOOD_CRYPTO_LAST4
+        ? createRobinhoodCryptoSource({apiKey:env.ROBINHOOD_CRYPTO_API_KEY,
+          privateKey:env.ROBINHOOD_CRYPTO_PRIVATE_KEY,accountLast4:env.ROBINHOOD_CRYPTO_LAST4}) : undefined;
       robinhoodSource = {ownerId:env.ROBINHOOD_SNAPSHOT_OWNER_ID,load:createSnapTradeSource({
         clientId:env.SNAPTRADE_CLIENT_ID,consumerKey:env.SNAPTRADE_CONSUMER_KEY,accountLast4:env.SNAPTRADE_ROBINHOOD_LAST4,
+        cryptoSource,
       })};
     }
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,robinhoodSource,

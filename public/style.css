@@ -211,6 +211,24 @@ header{flex-direction:column;align-items:stretch;gap:10px}
   gap: 4px 12px;
   padding: 12px 0;
 }
+#robinhood-portfolio {
+  max-width: 780px;
+  margin-inline: auto;
+  padding: clamp(14px, 3vw, 20px);
+  border: 1px solid #34463e;
+  border-radius: 12px;
+}
+#robinhood-portfolio h4 {
+  color: #8cf0b4;
+  font-size: 1.2rem;
+  margin: 1.5em 0 .3em;
+}
+.portfolio-row .watchlist-price {
+  display: inline-block;
+  padding: .4em .55em;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+}
 .portfolio-row > span:first-child { grid-area: 1 / 1; }
 .portfolio-row > span:first-child > a,
 .portfolio-row > span:first-child > small { white-space: nowrap; }

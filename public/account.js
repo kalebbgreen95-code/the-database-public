@@ -92,10 +92,10 @@ if (config?.accountMode) {
       try {
         const response = await call("alpaca-paper");
         if (request !== overviewRequest) return;
-        if (response.status === 401) return publishOverview(null);
+        if (response.status === 401) return publishOverview({status:"signed-out"});
         if (!response.ok) throw Error("Paper balance unavailable");
         const data = await response.json();
-        if (request === overviewRequest) publishOverview(data.connected ? {account:data.account} : null);
+        if (request === overviewRequest) publishOverview(data.connected ? {account:data.account} : {status:"disconnected"});
       } catch {
         if (request === overviewRequest) publishOverview({status:"unavailable"});
         return false;

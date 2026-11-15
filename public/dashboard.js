@@ -1861,7 +1861,8 @@ if (refreshButton) {
     try {
       if (page === "usage") {
         showPageTransfer();
-        status.textContent = await refreshAccountSection() ? "Saved usage couldn’t be loaded." : "Saved usage reloaded.";
+        await refreshAccountSection();
+        status.textContent = "";
         return;
       }
       const liveCrypto = page === "crypto" || (page === "opportunities" && $("buy-asset-class").value === "crypto");

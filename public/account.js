@@ -26,7 +26,6 @@ if (config?.accountMode) {
   const liveOrders = document.getElementById("connected-paper-orders");
   const paramsForScreen = new URLSearchParams(location.search);
   const onUsage = paramsForScreen.get("screen") === "usage" || location.hash === "#usage";
-  const usageForm = document.getElementById("usage-import");
   const usageAccount = document.getElementById("usage-account-open");
   const usageStatus = document.getElementById("usage-account-status");
   const renderMeter = document.getElementById("render-usage-meter");
@@ -57,23 +56,20 @@ if (config?.accountMode) {
   function showUsageSignIn() {
     ++usageRequest;
     showUsage(null);
-    usageForm.reset();
-    usageForm.hidden = true;
     usageAccount.hidden = false;
     usageStatus.textContent = "Sign in to view your saved usage.";
   }
-  async function fetchUsage(method="GET",data) {
+  async function fetchUsage(method="GET") {
     const request = ++usageRequest;
     try {
-      const response = await call("usage-snapshot",method,data);
+      const response = await call("usage-snapshot",method);
       const result = await response.json();
       if (request !== usageRequest) return;
       if (response.status === 401) return showUsageSignIn();
       if (!response.ok) throw Error(result.error ?? "Usage data unavailable.");
       showUsage(result.snapshot);
-      usageForm.hidden = false;
       usageAccount.hidden = true;
-      usageStatus.textContent = method === "PUT" ? "Usage snapshot imported." : "";
+      usageStatus.textContent = method === "POST" ? (result.updated ? "Usage updated." : "Sources haven’t published a newer snapshot.") : "";
     } catch (error) {
       if (request === usageRequest) usageStatus.textContent = error.message;
       return false;
@@ -83,18 +79,7 @@ if (config?.accountMode) {
     showUsage(null);
     void fetchUsage();
     usageAccount.addEventListener("click",openAccount);
-    document.addEventListener("refresh-account-section",event=>{event.detail.push(fetchUsage());});
-    usageForm.addEventListener("submit",async event=>{
-      event.preventDefault();
-      const file = document.getElementById("usage-import-file").files[0];
-      const button = usageForm.querySelector("button");
-      if (!file || file.size>8192 || button.disabled) return;
-      button.disabled = true;
-      try {
-        if (await fetchUsage("PUT",JSON.parse(await file.text())) !== false) usageForm.reset();
-      } catch { usageStatus.textContent = "Choose a valid Usage JSON snapshot."; }
-      finally { button.disabled = false; }
-    });
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(fetchUsage("POST"));});
   }
   const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
   const onPortfolio = paramsForScreen.get("screen") === "robinhood-portfolio" || location.hash === "#robinhood-portfolio";

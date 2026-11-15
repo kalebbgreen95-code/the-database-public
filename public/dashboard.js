@@ -1209,6 +1209,9 @@ function renderCryptoRecovery(rows) {
 
 function renderCryptoMarket(data) {
   const { coins, checkedAt, unavailable, source, partial } = data.cryptoMarket ?? {};
+  $("crypto-market-caption").textContent = source
+    ? "Tracked crypto pairs with Coinbase Exchange daily prices and returns."
+    : "Tracked crypto pairs with simulated USD closes and returns.";
   $("crypto-market-status").textContent = coins?.length
     ? (source ?? "Simulated snapshot") + " · " + (unavailable ? "Last available data · " : "Checked ") +
       date(checkedAt) + " ET" + (partial ? " · Some quotes unavailable" : "")

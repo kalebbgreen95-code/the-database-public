@@ -6,7 +6,10 @@
 <body><main>
 <div class="pinned-header">
 <header><div class="brand"><div class="brand-copy"><div class="brand-title"><h1><a href="./" aria-label="The Database home">The Database</a></h1><span id="connection-status" class="connecting" role="status">Loading</span></div><p id="status" role="status" hidden></p></div></div><div class="controls">
-<button id="configure-button" class="control-link" type="button" hidden>Configure</button>
+<div id="configure-control" class="configure-control" hidden>
+<button id="configure-button" class="control-link" type="button" aria-expanded="false" aria-controls="configure-links">Configure</button>
+<div id="configure-links" class="configure-links" hidden><button id="configure-account" type="button">Account</button></div>
+</div>
 <button id="update-app" class="control-link" type="button">Update</button>
 <nav aria-label="Dashboard pages">
 <select id="dashboard-page" aria-label="Dashboard page">
@@ -102,6 +105,8 @@
 </div>
 <div id="asset-setup" hidden><h3>Bot signals</h3><dl id="asset-setup-metrics" class="asset-metrics"></dl></div>
 <h3>Price and volume</h3><dl id="asset-market" class="asset-metrics"></dl>
+<button id="asset-alpaca-quote" type="button" hidden>Check Alpaca quote</button>
+<p id="asset-alpaca-status" role="status" hidden></p>
 <h3>Price changes</h3><p id="asset-change-source"></p><dl id="asset-changes" class="asset-metrics"></dl>
 <h3>Technical Analysis</h3>
 <p id="asset-technicals-summary"></p>

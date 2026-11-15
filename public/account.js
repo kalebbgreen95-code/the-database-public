@@ -138,13 +138,58 @@ if (config?.accountMode) {
   }
   pagePicker.add(new Option("Account", "/account"));
   const configure = document.getElementById("configure-button");
-  configure.hidden = false;
-  configure.addEventListener("click",openAccount);
+  const configureControl = document.getElementById("configure-control");
+  const configureLinks = document.getElementById("configure-links");
+  configureControl.hidden = false;
+  function showConfigure(open) {
+    configureLinks.hidden = !open;
+    configure.setAttribute("aria-expanded",String(open));
+  }
+  configure.addEventListener("click",()=>showConfigure(configureLinks.hidden));
+  configureControl.addEventListener("keydown",event=>{
+    if (event.key !== "Escape" || configureLinks.hidden) return;
+    showConfigure(false);
+    configure.focus();
+  });
+  document.addEventListener("click",event=>{
+    if (!configureControl.contains(event.target)) showConfigure(false);
+  });
+  document.getElementById("configure-account").addEventListener("click",()=>{
+    showConfigure(false);
+    openAccount();
+  });
   function openAccount() {
     if (!dialog.open) dialog.showModal();
     void run(update);
   }
   pagePicker.addEventListener("open-account",openAccount);
+  const assetSymbol = paramsForScreen.get("symbol") ?? "";
+  if (assetSymbol && (paramsForScreen.get("screen") === "asset" || location.pathname.endsWith("/asset"))) {
+    const quoteButton = document.getElementById("asset-alpaca-quote");
+    const quoteStatus = document.getElementById("asset-alpaca-status");
+    quoteButton.hidden = false;
+    quoteButton.addEventListener("click",()=>void run(async()=>{
+      quoteButton.disabled = true;
+      quoteStatus.hidden = false;
+      quoteStatus.textContent = "Checking Alpaca quote…";
+      try {
+        const response = await call("market-quote?" + new URLSearchParams({symbol:assetSymbol}));
+        const data = await response.json();
+        if (response.status === 401 || data.connected === false) {
+          quoteStatus.textContent = "Sign in and connect Alpaca Paper from Account to check a quote.";
+        } else if (!response.ok) {
+          quoteStatus.textContent = data.error ?? "Alpaca quote unavailable.";
+        } else {
+          quoteStatus.textContent = "Bid " + money.format(data.bid) + " · Ask " + money.format(data.ask) +
+            " · " + data.source + " · " + new Date(data.at).toLocaleString("en-US",{timeZone:"America/New_York"}) + " ET";
+        }
+      } catch {
+        quoteStatus.textContent = "Alpaca quote unavailable.";
+      } finally {
+        quoteButton.disabled = false;
+      }
+    }));
+  }
   dialog.addEventListener("close",()=>pagePicker.focus());
   document.getElementById("account-close").addEventListener("click",()=>dialog.close());
   signIn.addEventListener("click",()=>void run(async()=>{

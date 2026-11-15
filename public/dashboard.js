@@ -1428,8 +1428,9 @@ function renderNews() {
   const previous = sourcePicker.value;
   const sources = current.publicSources ?? [];
   const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source)]);
-  sourcePicker.replaceChildren(new Option("All sources",""),...[...labels].filter(Boolean).filter(label=>label !== "U.S. Treasury").map(label=>new Option(label,label)));
-  sourcePicker.value = labels.has(previous) ? previous : "";
+  sourcePicker.replaceChildren(new Option("All sources",""),new Option("Government & Economy","government"),
+    ...[...labels].filter(label=>label && label !== "U.S. Treasury").map(label=>new Option(label,label)));
+  sourcePicker.value = previous === "government" || labels.has(previous) ? previous : "";
   const source = sourcePicker.value;
   $("news-coverage").textContent = sources.filter(feed=>feed.source !== "U.S. Treasury").map(feed=>
     feed.source + (feed.available ? "" : " (unavailable)")).join(" · ");
@@ -1443,7 +1444,8 @@ function renderNews() {
   $("additional-headlines-title").textContent = source ? "Headlines" : "More headlines";
   $("briefing-stories").replaceChildren(...(picks.length ? picks.map(row => newsItem(row, true))
     : [el("li", "No market stories available for today yet")]));
-  const news = uniqueHeadlines(daily.filter(row => !source || (source === "government" ? governmentRiskReason(row.headline) : source.toLowerCase() === row.source?.toLowerCase())), picks);
+  const news = uniqueHeadlines(daily.filter(row => !source || (source === "government"
+    ? row.governmentFeed || governmentRiskReason(row.headline) : source === row.source)), picks);
   $("headlines").replaceChildren(...(news.length ? news.map(row => newsItem(row))
     : [el("li", source ? "No headlines from this source today" : "No additional headlines today")]));
 }

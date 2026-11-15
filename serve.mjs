@@ -57,7 +57,7 @@ export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tena
     headers.delete("authorization");
     if (session) headers.set("authorization","Bearer "+session);
     const reply = tenantService ? await tenantService({
-      path, method:req.method, headers,
+      path, method:req.method, headers, searchParams:new URL(req.url,"http://localhost").searchParams,
       async readJson() {
         let size = 0;
         const chunks = [];

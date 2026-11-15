@@ -96,7 +96,7 @@ header{flex-direction:column;align-items:stretch;gap:10px}
 .brand-title h1{margin:0;font-size:clamp(1.35rem,4vw,2.1rem)}
 @media(max-width:520px){.brand-title h1{font-size:clamp(1.1rem,5vw,1.6rem)}#connection-status{font-size:.8rem}}
 .brand p{margin-bottom:0}
-.controls:has(#configure-button[hidden]){grid-template-columns:max-content minmax(0,1fr) 44px}
+.controls:has(#configure-control[hidden]){grid-template-columns:max-content minmax(0,1fr) 44px}
 .controls nav{margin:0;min-width:0;display:grid}
 .overview-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .overview-balances{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px 12px}
@@ -198,10 +198,12 @@ header{flex-direction:column;align-items:stretch;gap:10px}
 }
 
 .configure-control { position: relative; display: grid; }
+.configure-control[hidden] { display: none; }
 .configure-control > button { width: 100%; }
 .configure-links { position: absolute; z-index: 2; top: calc(100% + 4px); right: 0; min-width: max(100%, 100px); background: #101916; border: 1px solid #546e62; border-radius: 6px; }
 .configure-links a { display: grid; align-items: center; min-height: 44px; padding: 6px 10px; color: #edf3ef; text-decoration: none; }
 .configure-links a:focus-visible { background: #25473a; }
+.configure-links button { width: 100%; min-height: 44px; border: 0; text-align: left; }
 @media(hover:hover){.configure-links a:hover{background:#25473a}}
 
 #robinhood-portfolio .portfolio-row {

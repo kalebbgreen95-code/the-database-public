@@ -150,9 +150,15 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});
     if (DEMO_SUPABASE_SECRET_KEY) paperSchedule = createPaperSchedule({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,store,browserPush});
-    const robinhoodSource = env.ROBINHOOD_SNAPSHOT_URL && env.ROBINHOOD_SNAPSHOT_TOKEN && env.ROBINHOOD_SNAPSHOT_OWNER_ID
+    let robinhoodSource = env.ROBINHOOD_SNAPSHOT_URL && env.ROBINHOOD_SNAPSHOT_TOKEN && env.ROBINHOOD_SNAPSHOT_OWNER_ID
       ? {url:env.ROBINHOOD_SNAPSHOT_URL,token:env.ROBINHOOD_SNAPSHOT_TOKEN,ownerId:env.ROBINHOOD_SNAPSHOT_OWNER_ID}
       : undefined;
+    if (env.SNAPTRADE_CLIENT_ID && env.SNAPTRADE_CONSUMER_KEY && env.SNAPTRADE_ROBINHOOD_LAST4 && env.ROBINHOOD_SNAPSHOT_OWNER_ID) {
+      const {createSnapTradeSource} = await import("./lib/snaptrade.mjs");
+      robinhoodSource = {ownerId:env.ROBINHOOD_SNAPSHOT_OWNER_ID,load:createSnapTradeSource({
+        clientId:env.SNAPTRADE_CLIENT_ID,consumerKey:env.SNAPTRADE_CONSUMER_KEY,accountLast4:env.SNAPTRADE_ROBINHOOD_LAST4,
+      })};
+    }
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,robinhoodSource,
       appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore,usageSources});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});

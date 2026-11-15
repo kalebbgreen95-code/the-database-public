@@ -29,6 +29,22 @@ if (config?.accountMode) {
   let activityVersion = 0;
   let previewVersion = 0;
   let previewRunning = false;
+  const runButton = document.getElementById("paper-run");
+  const runStatus = document.getElementById("paper-run-status");
+  runButton.addEventListener("click",async()=>{
+    runButton.disabled = true;
+    runStatus.textContent = "Checking Alpaca Paper for a qualifying crypto order…";
+    try {
+      const response = await call("paper-run","POST");
+      const data = await response.json();
+      runStatus.textContent = response.ok ? data.message : data.error ?? "Paper run unavailable.";
+      if (response.ok) void refreshActivity();
+    } catch {
+      runStatus.textContent = "Paper run unavailable. Check Alpaca Paper activity before retrying.";
+    } finally {
+      runButton.disabled = false;
+    }
+  });
   previewButton.addEventListener("click",async()=>{
     if (previewRunning) return;
     previewRunning = true;
@@ -164,7 +180,66 @@ if (config?.accountMode) {
   }
   pagePicker.addEventListener("open-account",openAccount);
   const assetSymbol = paramsForScreen.get("symbol") ?? "";
+  const newsPage = paramsForScreen.get("screen") === "news";
+  if (newsPage || assetSymbol) {
+    const button = document.getElementById(newsPage ? "market-live-news" : "asset-live-news");
+    const status = document.getElementById("live-news-status");
+    const list = document.getElementById("live-news-list");
+    if (newsPage) document.getElementById("news-coverage").after(button,status,list);
+    button.hidden = false;
+    button.addEventListener("click",async()=>{
+      button.disabled = true;
+      status.textContent = "Loading Alpaca headlines…";
+      try {
+        const response = await call("market-news?" + new URLSearchParams({symbol:newsPage ? "" : assetSymbol}));
+        const data = await response.json();
+        if (response.status === 401 || data.connected === false) {
+          status.textContent = "Sign in and connect Alpaca Paper from Account to load headlines.";
+        } else if (!response.ok) {
+          status.textContent = data.error ?? "Alpaca headlines unavailable.";
+        } else {
+          list.replaceChildren(...data.rows.map(row=>{
+            const item = document.createElement("li");
+            const link = document.createElement("a");
+            Object.assign(link,{href:row.url,textContent:row.headline,target:"_blank",rel:"noopener noreferrer"});
+            item.append(link," · " + row.source + " · " + row.filingDate);
+            return item;
+          }));
+          list.hidden = !data.rows.length;
+          status.textContent = data.rows.length ? "" : "No recent Alpaca headlines.";
+        }
+      } catch {
+        status.textContent = "Alpaca headlines unavailable.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
   if (assetSymbol && (paramsForScreen.get("screen") === "asset" || location.pathname.endsWith("/asset"))) {
+    const chartButton = document.getElementById("asset-live-chart");
+    const chartStatus = document.getElementById("asset-live-chart-status");
+    chartButton.hidden = false;
+    chartButton.addEventListener("click",async()=>{
+      chartButton.disabled = true;
+      chartStatus.textContent = "Loading Alpaca history…";
+      try {
+        const response = await call("market-chart?" + new URLSearchParams({symbol:assetSymbol}));
+        const data = await response.json();
+        if (response.status === 401 || data.connected === false) {
+          chartStatus.textContent = "Sign in and connect Alpaca Paper from Account to load this chart.";
+        } else if (!response.ok) {
+          chartStatus.textContent = data.error ?? "Alpaca chart unavailable.";
+        } else {
+          chartButton.dataset.loaded = "true";
+          document.dispatchEvent(new CustomEvent("alpaca-chart",{detail:data}));
+          chartStatus.textContent = "Chart loaded from " + data.source + ".";
+        }
+      } catch {
+        chartStatus.textContent = "Alpaca chart unavailable.";
+      } finally {
+        chartButton.disabled = false;
+      }
+    });
     const quoteButton = document.getElementById("asset-alpaca-quote");
     const quoteStatus = document.getElementById("asset-alpaca-status");
     quoteButton.hidden = false;

@@ -395,7 +395,10 @@ if (page === "search" && history.state?.searchQuery) {
   $("asset-search").requestSubmit();
 }
 
-function renderAssetChart(history) {
+document.addEventListener("alpaca-chart",event=>{
+  renderAssetChart(event.detail.rows,event.detail.source);
+});
+function renderAssetChart(history,source) {
   const panel = $("asset-chart-panel");
   panel.hidden = !history?.length;
   if (panel.hidden) return;
@@ -404,7 +407,7 @@ function renderAssetChart(history) {
   const readout = $("asset-chart-readout");
   const ranges = [...panel.querySelectorAll("[data-chart-months]")];
   const ctx = canvas.getContext("2d");
-  let months = 3;
+  let months = Number(ranges.find(button=>button.getAttribute("aria-pressed") === "true")?.dataset.chartMonths ?? 3);
   let selected = null;
   let rows = [];
   const left = 72;
@@ -492,7 +495,7 @@ function renderAssetChart(history) {
       if (readout.textContent !== text) readout.textContent = text;
     }
     const dates = rows[0].date + " to " + rows.at(-1).date;
-    $("asset-chart-caption").textContent = dates + " · Close (white) · 50-day SMA (green) · 200-day SMA (gold) · Volume bars" +
+    $("asset-chart-caption").textContent = source + " · " + dates + " · Close (white) · 50-day SMA (green) · 200-day SMA (gold) · Volume bars" +
       (weekly ? " · Current week shown through the latest daily bar" : "");
     canvas.setAttribute("aria-label", (weekly ? "Weekly" : "Daily") + " price and volume from " + dates);
   }
@@ -582,7 +585,7 @@ async function loadAssetDetails() {
       histogramTrend,
       volume?.relative == null ? "" : "Volume " + volume.relative.toFixed(2) + "× average",
     ].filter(Boolean).join(" · ");
-    renderAssetChart(chart);
+    if (!$("asset-live-chart").dataset.loaded) renderAssetChart(chart,"Simulated chart");
     $("asset-technicals-date").textContent = technicalDate
       ? "Daily bars through " + technicalDate + " · " + data.changeSource
       : "Completed daily history is unavailable.";

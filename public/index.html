@@ -92,6 +92,11 @@
 <div id="asset-push-detail" class="push-detail" tabindex="-1" hidden></div>
 <p id="asset-profile" hidden></p>
 <p id="asset-status" role="status"></p>
+<button id="asset-live-chart" type="button" hidden>Load Alpaca chart</button>
+<p id="asset-live-chart-status" role="status"></p>
+<button id="asset-live-news" type="button" hidden>Load Alpaca headlines</button>
+<button id="market-live-news" type="button" hidden>Load Alpaca market news</button>
+<p id="live-news-status" role="status"></p><ul id="live-news-list" hidden></ul>
 <div id="asset-chart-panel" hidden>
   <div class="chart-controls" role="group" aria-label="Chart time range">
     <button type="button" data-chart-months="1" aria-pressed="false">1M</button>
@@ -135,6 +140,8 @@
   <h3>Strategy decisions</h3>
   <p>Preview live crypto and ETF signals. Automated orders and the live stock checklist are pending.</p>
   <button id="paper-preview-check" type="button">Check signals</button>
+  <button id="paper-run" type="button">Run crypto paper bot once</button>
+  <p id="paper-run-status" role="status"></p>
   <p id="paper-preview-status" role="status"></p>
   <ul id="paper-preview-rows"></ul>
 </details>

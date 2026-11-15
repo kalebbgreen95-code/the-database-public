@@ -158,7 +158,8 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       const {createRobinhoodCryptoSource} = await import("./lib/robinhood-crypto.mjs");
       const cryptoSource = env.ROBINHOOD_CRYPTO_API_KEY && env.ROBINHOOD_CRYPTO_PRIVATE_KEY && env.ROBINHOOD_CRYPTO_LAST4
         ? createRobinhoodCryptoSource({apiKey:env.ROBINHOOD_CRYPTO_API_KEY,
-          privateKey:env.ROBINHOOD_CRYPTO_PRIVATE_KEY,accountLast4:env.ROBINHOOD_CRYPTO_LAST4}) : undefined;
+          privateKey:env.ROBINHOOD_CRYPTO_PRIVATE_KEY,publicKey:env.ROBINHOOD_CRYPTO_PUBLIC_KEY,
+          accountLast4:env.ROBINHOOD_CRYPTO_LAST4}) : undefined;
       robinhoodSource = {ownerId:env.ROBINHOOD_SNAPSHOT_OWNER_ID,load:createSnapTradeSource({
         clientId:env.SNAPTRADE_CLIENT_ID,consumerKey:env.SNAPTRADE_CONSUMER_KEY,accountLast4:env.SNAPTRADE_ROBINHOOD_LAST4,
         cryptoSource,

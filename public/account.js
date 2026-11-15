@@ -84,6 +84,37 @@ if (config?.accountMode) {
     document.addEventListener("refresh-account-section",event=>{event.detail.push(fetchUsage("POST"));});
   }
   const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
+  if (!document.getElementById("overview").hidden) {
+    let overviewRequest = 0;
+    const publishOverview = detail => document.dispatchEvent(new CustomEvent("overview-paper-balance",{detail}));
+    async function refreshOverviewPaper() {
+      const request = ++overviewRequest;
+      try {
+        const response = await call("alpaca-paper");
+        if (request !== overviewRequest) return;
+        if (response.status === 401) return publishOverview(null);
+        if (!response.ok) throw Error("Paper balance unavailable");
+        const data = await response.json();
+        if (request === overviewRequest) publishOverview(data.connected ? {account:data.account} : null);
+      } catch {
+        if (request === overviewRequest) publishOverview({status:"unavailable"});
+        return false;
+      }
+    }
+    publishOverview({status:"loading"});
+    void refreshOverviewPaper();
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(refreshOverviewPaper());});
+    document.addEventListener("paper-connection-changed",()=>{
+      publishOverview({status:"loading"});
+      void refreshOverviewPaper();
+    });
+    addEventListener("pageshow",event=>{
+      if (event.persisted) {
+        publishOverview({status:"loading"});
+        void refreshOverviewPaper();
+      }
+    });
+  }
   const onPortfolio = paramsForScreen.get("screen") === "robinhood-portfolio" || location.hash === "#robinhood-portfolio";
   const amount = value => value != null && Number.isFinite(Number(value)) ? money.format(Number(value)) : "unavailable";
   const snapshotPanel = document.getElementById("robinhood-snapshot-panel");

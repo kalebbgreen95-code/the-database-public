@@ -952,6 +952,35 @@ function paperEquityTone(equity) {
   return amount < 5000 ? "loss" : "gain";
 }
 
+let overviewPaper;
+function renderOverviewBalances() {
+  const overviewEquity = $("overview-equity");
+  const overviewCash = $("overview-cash");
+  overviewEquity.replaceChildren();
+  overviewCash.textContent = "";
+  if (overviewPaper?.status === "loading") return;
+  if (overviewPaper?.status === "unavailable") {
+    overviewEquity.textContent = "Alpaca Paper balance unavailable";
+    return;
+  }
+  const account = overviewPaper?.account;
+  const broker = account ?? current?.broker;
+  if (!broker) return;
+  const amount = value => value != null && Number.isFinite(Number(value)) ? money(Number(value)) : "unavailable";
+  if (account) {
+    overviewEquity.textContent = "Alpaca Paper equity " + amount(account.equity);
+    overviewCash.textContent = "Paper cash " + amount(account.cash);
+  } else {
+    const tone = paperEquityTone(broker.equity);
+    if (tone) overviewEquity.append("Demo equity ", el("span",amount(broker.equity),tone));
+    if (broker.cash != null) overviewCash.textContent = "Demo cash " + amount(broker.cash);
+  }
+}
+document.addEventListener("overview-paper-balance",event => {
+  overviewPaper = event.detail;
+  renderOverviewBalances();
+});
+
 function render(data) {
   if (page === "robinhood-portfolio" && current?.robinhoodPortfolio &&
       !(Date.parse(data.robinhoodPortfolio?.asOf) >= Date.parse(current.robinhoodPortfolio.asOf))) {
@@ -959,16 +988,7 @@ function render(data) {
   }
   current = data;
   $("status").hidden = true;
-  const overviewEquity = $("overview-equity");
-  const equityTone = paperEquityTone(data.broker.equity);
-  overviewEquity.replaceChildren();
-  if (equityTone) {
-    const amount = el("span", money(Number(data.broker.equity)), "neutral");
-    amount.className = equityTone;
-    overviewEquity.append("Paper equity ", amount);
-  }
-  $("overview-cash").textContent = data.broker.cash != null && Number.isFinite(Number(data.broker.cash))
-    ? "Demo cash " + money(Number(data.broker.cash)) : "";
+  renderOverviewBalances();
   setConnection(true);
   const activity = data.activity;
   $("orders-status").textContent = activity.error

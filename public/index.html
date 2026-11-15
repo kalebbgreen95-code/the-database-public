@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Database · Public</title><meta name="app-version" content="2.0.0"><meta name="theme-color" content="#111817">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
-<link rel="stylesheet" href="./style.css?v=2"><script type="module" src="./dashboard.js?v=2"></script></head>
+<link rel="stylesheet" href="./style.css?v=2"><script type="module" src="./dashboard.js?v=2"></script><script type="module" src="./account.js"></script></head>
 <body><main>
 <div class="pinned-header">
 <header><div class="brand"><div class="brand-copy"><div class="brand-title"><h1><a href="./" aria-label="The Database home">The Database</a></h1><span id="connection-status" class="connecting" role="status">Loading</span></div><p id="status" role="status" hidden></p></div></div><div class="controls">
@@ -22,7 +22,7 @@
 <a id="notifications-link" class="notifications-link" href="./?screen=notifications" aria-label="Notifications">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
 <span id="notifications-unread" hidden></span>
-</a></div></header>
+</a><button id="account-button" type="button" hidden>Account</button></div></header>
 <div class="header-status"><small id="app-version-status" role="status"></small><small>Public edition · simulated portfolio, prices and fills</small></div>
 </div>
 <section id="overview">
@@ -167,4 +167,19 @@
 <section id="robinhood-portfolio" hidden><div class="section-heading"><h2>Demo Portfolio</h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Robinhood portfolio" title="Refresh Robinhood portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p><p id="portfolio-imported" class="watchlist-caption"></p><p><strong id="portfolio-value">Holdings value · Unavailable</strong></p><p id="portfolio-return"></p><h3>Crypto</h3><ul id="portfolio-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="portfolio-stocks" class="watchlist-rows"></ul></section>
 <section id="robinhood"><h2>Watchlist</h2><p id="imported"></p><p class="watchlist-caption">Charts show up to 20 daily closes</p><h3>Crypto</h3><ul id="watchlist-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="watchlist-stocks" class="watchlist-rows"></ul></section>
 <button id="scroll-to-top" type="button" aria-label="Scroll to top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
-<a id="back-to-overview" href="./" aria-label="Go back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></a></main></body></html>
+<a id="back-to-overview" href="./" aria-label="Go back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></a><dialog id="account-dialog" aria-labelledby="account-title">
+  <h2 id="account-title">Your account</h2>
+  <button id="account-close" type="button">Close</button>
+  <button id="account-sign-in" type="button" hidden>Sign in with GitHub</button>
+  <button id="account-sign-out" type="button" hidden>Sign out</button>
+  <p id="account-status" role="status"></p>
+  <p id="account-paper-balance"></p>
+  <form id="account-paper-form" hidden>
+    <h3>Alpaca Paper</h3>
+    <label>Paper API key <input name="keyId" type="password" autocomplete="off" required maxlength="128"></label>
+    <label>Paper API secret <input name="secret" type="password" autocomplete="off" required maxlength="128"></label>
+    <button type="submit">Connect paper account</button>
+  </form>
+  <button id="account-disconnect" type="button" hidden>Disconnect Alpaca Paper</button>
+</dialog>
+</main></body></html>

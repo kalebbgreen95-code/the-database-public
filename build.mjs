@@ -9,7 +9,7 @@ const snapshot = {generated:now.toISOString(), demo:replay(+now), market:{treasu
 Object.assign(snapshot, dashboardData(snapshot.demo, data, snapshot.generated));
 const dir = new URL("./dist/",import.meta.url);
 await mkdir(dir,{recursive:true});
-for (const file of ["index.html","dashboard.js","style.css","briefing.mjs","public-data.js"]) {
+for (const file of ["index.html","dashboard.js","style.css","briefing.mjs","public-data.js","account.js"]) {
   await cp(new URL("./public/"+file,import.meta.url),new URL(file,dir));
 }
 await cp(new URL("./lib/stock-checklist.mjs",import.meta.url),new URL("stock-checklist.mjs",dir));

@@ -9,7 +9,7 @@ const demo = replay(+now);
 const snapshot = dashboardData(demo, data, now.toISOString());
 const dir = new URL("./dist/",import.meta.url);
 await mkdir(dir,{recursive:true});
-for (const file of ["dashboard.js","style.css","briefing.mjs","public-data.js","account.js"]) {
+for (const file of ["dashboard.js","style.css","briefing.mjs","public-data.js","account.js","device-alerts.js","notification-worker.js"]) {
   await cp(new URL("./public/"+file,import.meta.url),new URL(file,dir));
 }
 await cp(new URL("./lib/stock-checklist.mjs",import.meta.url),new URL("stock-checklist.mjs",dir));

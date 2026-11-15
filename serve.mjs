@@ -6,6 +6,8 @@ import { gzipSync } from "node:zlib";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 const files = new Map([["/","text/html"],["/index.html","text/html"],["/dashboard.js","text/javascript"],["/style.css","text/css"],["/briefing.mjs","text/javascript"],["/stock-checklist.mjs","text/javascript"],["/public-data.js","text/javascript"],["/account.js","text/javascript"],["/snapshot.json","application/json"]]);
+files.set("/device-alerts.js","text/javascript");
+files.set("/notification-worker.js","text/javascript");
 const assets = new Map();
 function staticAsset(url) {
   let entry = assets.get(url.href);

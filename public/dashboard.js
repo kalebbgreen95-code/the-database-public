@@ -2,6 +2,7 @@ import { stockChecklist } from "./stock-checklist.mjs";
 import { criticalNewsReason, governmentRiskReason, groupNewsEvents, isMajorMarketNews, newsPercentageTone, related, topStories, uniqueHeadlines } from "./briefing.mjs";
 const $ = id => document.getElementById(id);
 import { readDemo, publicRoute } from "./public-data.js";
+import { checkDeviceAlerts } from "./device-alerts.js";
 const appRoot = new URL("./", import.meta.url);
 const currentUrl = new URL(location.href);
 const screen = url => url.searchParams.get("screen") ?? "";
@@ -189,8 +190,14 @@ function showFloatingNavigation() {
   document.documentElement.classList.remove("floating-navigation-idle");
   clearTimeout(floatingNavigationTimer);
   floatingNavigationTimer = setTimeout(() => {
-    document.documentElement.classList.add("floating-navigation-idle");
+    if (!document.activeElement?.matches("#back-to-overview:focus-visible,#scroll-to-top:focus-visible")) {
+      document.documentElement.classList.add("floating-navigation-idle");
+    }
   }, 1000);
+}
+for (const button of [backButton,$("scroll-to-top")]) {
+  button.addEventListener("focus",showFloatingNavigation);
+  button.addEventListener("blur",showFloatingNavigation);
 }
 for (const event of ["scroll", "keydown", "click"]) {
   window.addEventListener(event, showFloatingNavigation, { passive: true, capture: true });
@@ -879,6 +886,7 @@ function syncClearedNotifications() {
 }
 
 function renderNotifications(notifications) {
+  checkDeviceAlerts(notifications);
   const visible = notifications.filter(notice => !clearedNotificationIds.has(notice.id));
   updateUnreadNotifications(visible);
   $("clear-notifications").disabled = !visible.length;
@@ -1427,7 +1435,7 @@ function renderNews() {
   const sourcePicker = $("news-source");
   const previous = sourcePicker.value;
   const sources = current.publicSources ?? [];
-  const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source)]);
+  const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source),"SEC filings"]);
   sourcePicker.replaceChildren(new Option("All sources",""),new Option("Government & Economy","government"),
     ...[...labels].filter(label=>label && label !== "U.S. Treasury").map(label=>new Option(label,label)));
   sourcePicker.value = previous === "government" || labels.has(previous) ? previous : "";
@@ -1448,6 +1456,13 @@ function renderNews() {
     ? row.governmentFeed || governmentRiskReason(row.headline) : source === row.source)), picks);
   $("headlines").replaceChildren(...(news.length ? news.map(row => newsItem(row))
     : [el("li", source ? "No headlines from this source today" : "No additional headlines today")]));
+  if (source === "SEC filings" && !news.length) {
+    const link = el("a","View SEC filings on EDGAR");
+    link.href = "https://www.sec.gov/search-filings";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    $("headlines").firstElementChild.replaceChildren(link);
+  }
 }
 $("news-source").addEventListener("change", renderNews);
 function updatePotentialBuyPrice(label, quote) {

@@ -1,45 +1,170 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#111817">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>The Database · Public Demo</title>
-<link rel="stylesheet" href="./style.css">
-<link rel="stylesheet" href="./public.css">
-<script type="module" src="./dashboard.js"></script>
-</head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Database · Public</title><meta name="app-version" content="2.0.0"><meta name="theme-color" content="#111817">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="stylesheet" href="./style.css?v=2"><script type="module" src="./dashboard.js?v=2"></script></head>
 <body><main>
 <div class="pinned-header">
-<header><div class="brand-title"><h1><a href="#overview">The Database</a></h1></div>
-<nav aria-label="Dashboard pages"><label for="dashboard-page">Page</label><select id="dashboard-page">
-<option value="overview">Overview</option><option value="search">Search &amp; Watchlist</option>
-<option value="opportunities">Potential Buys</option><option value="ai-watchlist">AI Watchlist</option>
-<option value="crypto">Crypto</option><option value="news">News</option>
-<option value="activity">Paper Trading</option></select></nav></header>
-<p class="header-status">Public demo · no sign-in · simulated assets and trades</p>
+<header><div class="brand"><div class="brand-copy"><div class="brand-title"><h1><a href="./" aria-label="The Database home">The Database</a></h1><span id="connection-status" class="connecting" role="status">Loading</span></div><p id="status" role="status" hidden></p></div></div><div class="controls">
+<nav aria-label="Dashboard pages">
+<select id="dashboard-page" aria-label="Dashboard page">
+<option value="/search">Search</option>
+<option value="/robinhood-portfolio">Demo Portfolio</option><option value="/robinhood">Watchlist</option>
+<option value="/">Overview</option>
+<option value="/opportunities">Potential Buys</option>
+<option value="/ai-watchlist">AI Watchlist</option>
+<option value="/crypto">Crypto</option>
+<option value="/news">News</option>
+<option value="/activity">Paper Trading</option>
+<option value="/notifications">Notifications</option>
+</select>
+</nav>
+<a id="notifications-link" class="notifications-link" href="./?screen=notifications" aria-label="Notifications">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+<span id="notifications-unread" hidden></span>
+</a></div></header>
+<div class="header-status"><small id="app-version-status" role="status"></small><small>Public edition · simulated portfolio, prices and fills</small></div>
 </div>
-<p id="status" role="status">Loading the latest demo snapshot…</p>
-<section id="overview" data-page>
-<div class="overview-heading"><h2>Overview</h2><a id="overview-equity" href="#activity">View simulated account</a></div>
-<p>Explore the dashboard and its automated trading strategy with a synthetic market and $5,000 in starting demo cash.</p>
-<div class="grid"><div><h3>Simulated equity · rolling 30-day replay</h3><div id="equity-chart"></div></div>
-<div><h3>Public market data · U.S. Treasury yields</h3><p id="rates">Awaiting data.</p>
-<a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve">U.S. Treasury daily rates</a></div></div>
+<section id="overview">
+  <div class="overview-heading"><h2 id="overview-title">Overview</h2><div class="overview-balances"><a id="overview-equity" href="./?screen=activity"></a><p id="overview-cash"></p></div></div>
+  <div id="overview-critical">
+    <h3>Critical news today</h3>
+    <div id="overview-push-detail" class="push-detail" tabindex="-1" hidden></div>
+    <p id="critical-news-checked"></p>
+    <ul class="overview-news" id="overview-critical-news"></ul>
+  </div>
+  <div class="overview-market">
+    <h3>Market snapshot</h3>
+    <p id="overview-market-status"></p>
+    <ul id="overview-benchmarks"></ul>
+  </div>
+  <p id="overview-health" role="status" hidden></p>
+  <h3>Top watchlist performers · 1D</h3>
+  <div class="overview-grid">
+    <div><h4>Stocks &amp; ETFs</h4><ul class="overview-movers" id="stock-movers"></ul></div>
+    <div><h4>Crypto</h4><ul class="overview-movers" id="crypto-movers"></ul></div>
+  </div>
+  <div id="overview-downside" class="overview-downside" hidden></div>
+  <p class="overview-bot"><a href="./?screen=activity">Bot activity</a><span id="overview-bot-activity"></span></p>
+<details><summary>Public market data · U.S. Treasury yields</summary><p id="public-rates"></p><a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve">Treasury daily rates</a></details>
+  <details id="overview-freshness"><summary>Sources and freshness</summary><dl id="source-freshness" class="asset-metrics"></dl></details>
 </section>
-<section id="search" data-page hidden><h2>Search &amp; Watchlist</h2><p>Browse the fixed demo universe. All displayed asset prices are synthetic.</p>
-<label>Symbol or name <input id="query" type="search" maxlength="40" autocomplete="off"></label>
-<div id="watchlist-results"></div></section>
-<section id="asset" data-page hidden><p><a id="asset-back" href="#search">← Back to watchlist</a></p><h2 id="asset-title">Asset details</h2><div id="asset-info"></div></section>
-<section id="opportunities" data-page hidden><h2>Potential Buys</h2><p>Illustrative checklist and momentum signals using synthetic data.</p>
-<label>Asset class <select id="buy-asset-class"><option value="Stock">Stocks</option><option value="ETF">ETFs</option><option value="Crypto">Crypto</option></select></label>
-<div id="candidates"></div></section>
-<section id="ai-watchlist" data-page hidden><h2>AI Watchlist</h2><p>Company descriptions and illustrative checklist results.</p><div id="ai-results"></div></section>
-<section id="crypto" data-page hidden><h2>Crypto</h2><p>Daily 28-day momentum signals on synthetic closes.</p><div id="crypto-results"></div></section>
-<section id="news" data-page hidden><h2>Market news</h2><p>Public releases from the Federal Reserve.</p><ul id="headlines"></ul><a href="https://www.federalreserve.gov/newsevents/pressreleases.htm">Federal Reserve press releases</a></section>
-<section id="activity" data-page hidden><h2>Paper Trading · Simulation</h2>
-<p>This bot scores completed sample bars and fills orders at a modeled price. The 30-day window replays from fresh demo cash, so results may change as the window moves. No brokerage connection or real orders.</p>
-<p id="balance"></p><h3>Open simulated positions</h3><div id="positions"></div>
-<h3>Simulated fills</h3><div id="trades" class="scroll"></div></section>
-</main></body></html>
+<section id="ai-watchlist" hidden>
+  <div class="section-heading"><h2>AI Watchlist</h2><button id="refresh-ai-watchlist" class="section-refresh" type="button" aria-label="Refresh AI Watchlist" title="Refresh AI Watchlist"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-ai-watchlist" class="section-refresh-status" role="status"></p>
+  <p>Stocks with direct exposure to AI models, cloud, data centers, memory, chips or their supply chain that meet the Potential Buys stock screen.</p>
+  <p id="ai-checklist-status" role="status">Checking AI Watchlist stocks…</p>
+  <ol id="ai-checklist-candidates"></ol>
+</section>
+<section id="crypto" hidden>
+<div class="section-heading"><h2>Crypto</h2><button id="refresh-crypto" class="section-refresh" type="button" aria-label="Refresh Crypto" title="Refresh Crypto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-crypto" class="section-refresh-status" role="status"></p>
+<h3>BTC and ETH recovery watch</h3>
+<p>Simulated daily candles and recovery indicators. Up-candle volume is a proxy for buying pressure.</p>
+<ul class="overview-movers" id="crypto-recovery-list"></ul>
+<details class="paper-panel">
+  <summary>Crypto strategy comparison</summary>
+  <p>BTC and ETH start with equal capital. Completed daily signals trade at the next open. Includes an estimated 0.30% cost per side.</p>
+  <p id="crypto-research-status" role="status"></p>
+  <ul id="crypto-research-results"></ul>
+  <details><summary>Recent hypothetical decisions</summary><ul id="crypto-research-decisions"></ul></details>
+</details>
+<p>Tracked crypto pairs with simulated USD closes and returns.</p>
+<p id="crypto-market-status" role="status">Loading crypto market data…</p>
+<ol id="crypto-market-list" class="crypto-market-list"></ol>
+</section>
+<section id="search" hidden>
+<h2>Search</h2>
+<form id="asset-search">
+<label for="asset-query">Symbol or name</label>
+<input id="asset-query" type="search" placeholder="e.g. NVDA, SPY, Bitcoin" maxlength="60" required>
+<button type="submit">Search</button>
+</form>
+<p id="search-status" role="status"></p>
+<ul id="search-results"></ul>
+<div id="recent-searches" hidden><h3>Recent searches</h3><button id="clear-searches" type="button">Clear history</button><ul id="search-history"></ul></div>
+</section>
+<section id="asset" hidden>
+<h2 id="asset-title">Asset details</h2>
+<div id="asset-push-detail" class="push-detail" tabindex="-1" hidden></div>
+<p id="asset-profile" hidden></p>
+<p id="asset-status" role="status"></p>
+<div id="asset-chart-panel" hidden>
+  <div class="chart-controls" role="group" aria-label="Chart time range">
+    <button type="button" data-chart-months="1" aria-pressed="false">1M</button>
+    <button type="button" data-chart-months="3" aria-pressed="true">3M</button>
+    <button type="button" data-chart-months="12" aria-pressed="false">1Y</button>
+    <label><span class="chart-interval-label">Interval</span> <select id="asset-chart-interval" aria-label="Chart interval"><option value="daily">Daily</option><option value="weekly">Weekly</option></select></label>
+  </div>
+  <p id="asset-chart-readout" aria-live="polite"></p>
+  <canvas id="asset-chart" width="900" height="360" tabindex="0" role="img" aria-label="Price, moving averages, and volume chart" aria-describedby="asset-chart-caption"></canvas>
+  <p id="asset-chart-caption"></p>
+</div>
+<div id="asset-setup" hidden><h3>Bot signals</h3><dl id="asset-setup-metrics" class="asset-metrics"></dl></div>
+<h3>Price and volume</h3><dl id="asset-market" class="asset-metrics"></dl>
+<h3>Price changes</h3><p id="asset-change-source"></p><dl id="asset-changes" class="asset-metrics"></dl>
+<h3>Technical Analysis</h3>
+<p id="asset-technicals-summary"></p>
+<p id="asset-technicals-date"></p>
+<dl id="asset-technicals" class="asset-metrics"></dl>
+<div id="fund-metrics" hidden><h3>Fund breakdown</h3><dl id="asset-fund" class="asset-metrics"></dl></div><div id="company-metrics" hidden><h3>Company fundamentals</h3><dl id="asset-fundamentals" class="asset-metrics"></dl><a id="asset-filings" hidden>SEC filings</a><h3>Valuation ratios</h3><dl id="asset-valuation" class="asset-metrics"></dl><h3>Stock checklist</h3><dl id="asset-checklist" class="asset-metrics"></dl></div>
+<h3>Related news and filings</h3><ul id="asset-articles"></ul>
+</section>
+<section id="notifications"><div class="notification-heading"><h2>Notifications <span id="notice-count"></span></h2><button id="clear-notifications" type="button" disabled>Clear All</button><button id="refresh-notifications" class="section-refresh" type="button" aria-label="Refresh Notifications" title="Refresh Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-notifications" class="section-refresh-status" role="status"></p><div id="notifications-push-detail" class="push-detail" tabindex="-1" hidden></div><ul id="notice-list"></ul></section>
+<div class="briefing">
+<section id="news"><div class="section-heading"><h2>Today’s market news</h2><button id="refresh-news" class="section-refresh" type="button" aria-label="Refresh News" title="Refresh News"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-news" class="section-refresh-status" role="status"></p><div id="news-push-detail" class="push-detail" tabindex="-1" hidden></div><p id="news-date"></p><div id="news-top-stories"><h3>Top stories</h3><ol id="briefing-stories"></ol></div><h3 id="additional-headlines-title">More headlines</h3><label>Source <select id="news-source"><option value="">All sources</option><option value="Federal Reserve">Federal Reserve</option></select></label><ul id="headlines"></ul></section>
+<section id="opportunities"><div class="section-heading"><h2>Potential Buys</h2><button id="refresh-opportunities" class="section-refresh" type="button" aria-label="Refresh Potential Buys" title="Refresh Potential Buys"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-opportunities" class="section-refresh-status" role="status"></p><label for="buy-asset-class">Asset class</label> <select id="buy-asset-class"><option value="stocks">Stocks</option><option value="etfs">ETFs</option><option value="crypto">Crypto</option></select><div id="stock-candidates"><p>Trailing P/E below 30×, forward P/E below trailing P/E, and at least two checklist passes. Near matches fill any remaining spots.</p><p id="checklist-status" role="status"></p><ol id="checklist-candidates"></ol></div><div id="fund-candidates" hidden><h3>Tracked ETFs</h3><p>Ranked by expense ratio, then one-year price change.</p><p id="fund-status" role="status"></p><ol id="fund-list"></ol></div><div id="crypto-candidates" hidden><h3>Daily 28-day momentum</h3><p>BTC, ETH, SOL, XRP, LINK, and LTC are evaluated daily using completed UTC candles.</p><p id="crypto-buy-status" role="status"></p><ol id="crypto-buy-list"></ol></div></section>
+</div>
+<section id="activity" aria-labelledby="paper-title">
+<div class="section-heading"><h2 id="paper-title">Paper Trading · Simulation</h2><button id="refresh-activity" class="section-refresh" type="button" aria-label="Refresh Paper Trading" title="Refresh Paper Trading"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-activity" class="section-refresh-status" role="status"></p>
+<div id="activity-push-detail" class="push-detail" tabindex="-1" hidden></div>
+<div class="paper-equity">
+<h3>Account equity</h3>
+<dl id="paper-score" class="paper-score"></dl>
+<p id="equity-summary"></p>
+<canvas id="equity-chart" width="640" height="160" role="img" aria-label="Daily paper account equity" hidden></canvas>
+<details id="paper-live-comparison" hidden><summary>Compare with SPY and Bitcoin</summary>
+<p>Paper account snapshots compared with completed benchmark closes on matching dates.</p><ul id="paper-live-benchmarks"></ul></details>
+</div>
+<details class="paper-panel" open><summary>Strategy decisions</summary><p id="paper-cycle-status"></p><ul id="paper-decisions"></ul>
+<p>Crypto day trades hold for at least 24 hours from the entry fill unless the price falls 10% or rises 20% from entry. After 24 hours, two consecutive completed five-minute reversal candles can also trigger an exit.</p>
+<p>The stock checklist uses a 20% stop or a confirmed bearish reversal. The replay checks synthetic prices once per simulated session.</p>
+</details>
+<details class="paper-panel" open>
+<summary>Orders &amp; positions</summary>
+<h3>Pending orders</h3><ul id="pending"></ul>
+<h3>Open strategy positions</h3><ul id="active"></ul>
+<h3>Simulated order history</h3><p id="orders-status"></p>
+<div class="scroll"><table role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Symbol</th><th role="columnheader" scope="col">Side</th><th role="columnheader" scope="col">Source</th><th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Filled quantity</th><th role="columnheader" scope="col">Gross fill (USD)</th><th role="columnheader" scope="col">Average fill</th><th role="columnheader" scope="col">Time (ET)</th><th role="columnheader" scope="col">Reason</th></tr></thead><tbody id="orders"></tbody></table></div>
+</details>
+<details class="paper-panel">
+<summary>Strategy performance</summary>
+<h3>Completed paper trades by strategy</h3>
+<p>Results compound net returns per completed trade. Drawdown uses that same series.</p>
+<div class="scroll"><table role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Strategy</th><th role="columnheader" scope="col">Asset</th><th role="columnheader" scope="col">Closed</th><th role="columnheader" scope="col">Win rate</th><th role="columnheader" scope="col">Net return</th><th role="columnheader" scope="col">Drawdown</th></tr></thead><tbody id="results"></tbody></table></div>
+<h3>Recent closed trades</h3><ul id="closed"></ul>
+<h3>Paper strategy learning</h3>
+<p id="paper-learning-since"></p>
+<p>The original learning rule compares the last 20 eligible closes in two groups of 10 across at least three exit days per group. The replay uses fixed entry sizes. Two losing groups halve new entry size. Two profitable groups restore base size. Mixed results keep the current size. Returns include estimated trading costs.</p>
+<ul id="paper-learning"></ul>
+<h3>Strategy benchmarks</h3>
+<p>Recent closed trades compared with the same dollars in SPY or BTC over matched completed-close intervals. Idle cash earns zero. Same-day trades and missing prices are omitted.</p>
+<ul id="paper-strategy-benchmarks"></ul>
+<h3>BTC trend filter experiment</h3>
+<p id="paper-shadow-status"></p>
+<ul id="paper-shadow-results"></ul>
+<h3>Intraday crypto outcomes by exit reason</h3><ul id="intraday-outcomes"></ul>
+</details>
+<details class="paper-panel">
+<summary>Historical strategy comparison · synthetic scenario</summary>
+<p>Simulated returns after costs. The full window covers 180 synthetic observations. The later window covers the last 90. Cash earns zero in this comparison.</p>
+<div class="scroll"><table role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Strategy</th><th role="columnheader" scope="col">Full return</th><th role="columnheader" scope="col">Max drawdown</th><th role="columnheader" scope="col">Later return</th><th role="columnheader" scope="col">Later return at 2× costs</th><th role="columnheader" scope="col">Avg. exposure</th><th role="columnheader" scope="col">Orders</th></tr></thead><tbody id="paper-benchmarks"></tbody></table></div>
+</details>
+<details class="paper-panel">
+<summary>Crypto paper universe comparison</summary>
+<p id="paper-crypto-universe-status"></p><ul id="paper-crypto-universe"></ul>
+</details>
+<details class="paper-panel"><summary>Fill reconciliation</summary><p id="paper-fee-status"></p><ul id="paper-executions"></ul></details>
+</section>
+<section id="robinhood-portfolio" hidden><div class="section-heading"><h2>Demo Portfolio</h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Robinhood portfolio" title="Refresh Robinhood portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p><p id="portfolio-imported" class="watchlist-caption"></p><p><strong id="portfolio-value">Holdings value · Unavailable</strong></p><p id="portfolio-return"></p><h3>Crypto</h3><ul id="portfolio-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="portfolio-stocks" class="watchlist-rows"></ul></section>
+<section id="robinhood"><h2>Watchlist</h2><p id="imported"></p><p class="watchlist-caption">Charts show up to 20 daily closes</p><h3>Crypto</h3><ul id="watchlist-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="watchlist-stocks" class="watchlist-rows"></ul></section>
+<button id="scroll-to-top" type="button" aria-label="Scroll to top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
+<a id="back-to-overview" href="./" aria-label="Go back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></a></main></body></html>

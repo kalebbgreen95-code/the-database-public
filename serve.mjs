@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-const files = new Map([["/","text/html"],["/index.html","text/html"],["/dashboard.js","text/javascript"],["/style.css","text/css"],["/public.css","text/css"],["/snapshot.json","application/json"]]);
+const files = new Map([["/","text/html"],["/index.html","text/html"],["/dashboard.js","text/javascript"],["/style.css","text/css"],["/briefing.mjs","text/javascript"],["/stock-checklist.mjs","text/javascript"],["/public-data.js","text/javascript"],["/snapshot.json","application/json"]]);
 export async function handle(req,res,dir=new URL("./dist/",import.meta.url)) {
   res.setHeader("X-Content-Type-Options","nosniff");
   const path = req.url?.split("?")[0];

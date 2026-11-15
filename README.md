@@ -1,6 +1,6 @@
 # The Database · Public Demo
 
-A sign-in-free dashboard and a simulation-only replay bot. The app uses a static snapshot and exposes no write, admin, or deployment endpoints. The synthetic watchlist, account, and fills are generated from scratch. Equity, ETF, and crypto prices and checklist values are illustrative. U.S. Treasury yields and Federal Reserve releases are public observations and are shown separately with source dates and links.
+The public edition of The Database uses the v1.5.192 dashboard markup, styling and UI interactions with a simulation-only replay bot. It includes Overview, Search and asset charts, Demo Portfolio, Watchlist, Potential Buys, AI Watchlist, Crypto, News, Paper Trading and an in-app notification inbox. The app uses a static snapshot and exposes no write, admin, or deployment endpoints. The synthetic watchlist, account, and fills are generated from scratch. Equity, ETF, and crypto prices and checklist values are illustrative. U.S. Treasury yields and Federal Reserve releases are public observations and are shown separately with source dates and links.
 
 ## Run locally
 
@@ -23,7 +23,7 @@ Pages hosts only `dist/`, and the standard GitHub-hosted runner builds it daily 
 
 ## Bot, data and storage
 
-The scheduled job starts with $5,000 in fresh demo cash and replays 30 completed UTC days of generated bars. It carries over the stock checklist, minute pullback and reversal checks, crypto intraday momentum and exits, daily crypto allocation signal, and technical indicators. The adapted executor uses fixed $250 entries, skips synthetic stock/ETF sessions on weekends, and never calls an order API. It models fills on synthetic bars; it does not model a real exchange calendar, slippage, spreads, broker execution, or the original research engine. It discards the ledger at the beginning of each replay window. Published storage is one public snapshot in the Pages deployment.
+The scheduled job starts with $5,000 in fresh demo cash and replays 30 completed UTC days of generated bars. It carries over the stock checklist, minute pullback and reversal checks, crypto intraday momentum and exits, daily crypto allocation signal, historical comparison, BTC filter experiment, and technical indicators. The adapted executor uses fixed $250 entries, skips synthetic stock/ETF sessions on weekends, and never calls an order API. It models fills on synthetic bars; it does not model a real exchange calendar, slippage, spreads, broker execution, or adaptive sizing. The public research panels run the comparison algorithms on synthetic candles. It discards the ledger at the beginning of each replay window. Published storage is one public snapshot in the Pages deployment.
 
 `lib/providers.mjs` defines the build-side data adapter. The current adapter returns `{treasury, headlines}`, with a neutral unavailable state for each feed. Public data comes from the [Treasury daily XML feed](https://home.treasury.gov/treasury-daily-interest-rate-xml-feed) and [Federal Reserve RSS](https://www.federalreserve.gov/feeds/feeds.htm). The runner requests months and parses only selected columns and valid links. No visitor input is sent to a feed provider.
 

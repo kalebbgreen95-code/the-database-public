@@ -23,7 +23,35 @@ if (config?.accountMode) {
   const liveOrders = document.getElementById("connected-paper-orders");
   const paramsForScreen = new URLSearchParams(location.search);
   const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
+  const previewButton = document.getElementById("paper-preview-check");
+  const previewStatus = document.getElementById("paper-preview-status");
+  const previewRows = document.getElementById("paper-preview-rows");
   let activityVersion = 0;
+  let previewVersion = 0;
+  let previewRunning = false;
+  previewButton.addEventListener("click",async()=>{
+    if (previewRunning) return;
+    previewRunning = true;
+    const version = ++previewVersion;
+    previewButton.disabled = true;
+    previewStatus.textContent = "Checking Alpaca candles…";
+    previewRows.replaceChildren();
+    try {
+      const response = await call("paper-preview");
+      if (!response.ok) throw Error("Signal check unavailable.");
+      const preview = await response.json();
+      if (version !== previewVersion) return;
+      if (!preview.connected) throw Error("Connect an Alpaca Paper account first.");
+      previewStatus.textContent = [preview.etfs.status,preview.crypto.status].join(" · ");
+      fillList(previewRows,[...preview.etfs.rows,...preview.crypto.rows].map(row=>
+        [row.symbol,row.signal,...row.evidence].join(" · ")),"No signals available.");
+    } catch (error) {
+      if (version === previewVersion) previewStatus.textContent = error.message;
+    } finally {
+      previewButton.disabled = false;
+      previewRunning = false;
+    }
+  });
   function fillList(list, rows, empty) {
     list.replaceChildren(...(rows.length ? rows : [empty]).map(text=>{
       const item = document.createElement("li");
@@ -33,6 +61,9 @@ if (config?.accountMode) {
   }
   function clearActivity() {
     activityVersion++;
+    previewVersion++;
+    previewRows.replaceChildren();
+    previewStatus.textContent = "";
     livePaper.hidden = true;
     liveEquity.textContent = "";
     livePositions.replaceChildren();

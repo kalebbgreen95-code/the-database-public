@@ -12,7 +12,7 @@ let snapshot;
 export async function readDemo(path, {signal, refresh = false} = {}) {
   if (signal?.aborted) throw signal.reason;
   if (!snapshot || refresh) {
-    const request = fetch(new URL("snapshot.json", root), {cache:refresh ? "reload" : "no-cache", signal:AbortSignal.timeout(10000)})
+    const request = fetch(new URL("snapshot.json", root), {cache:refresh ? "no-cache" : "default", signal:AbortSignal.timeout(10000)})
       .then(response => {
         if (!response.ok) throw Error("Snapshot unavailable");
         return response.json();

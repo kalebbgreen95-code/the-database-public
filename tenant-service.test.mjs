@@ -19,6 +19,12 @@ test("a paper connection is accessible only to its authenticated owner", async (
           const id = token.endsWith("a") ? first : token.endsWith("b") ? second : null;
           return Response.json({id}, {status:id ? 200 : 401});
         }
+        if (url.pathname === "/v2/clock") return Response.json({is_open:false});
+        if (url.pathname === "/v1beta3/crypto/us/bars") {
+          assert.equal(url.hostname,"data.alpaca.markets");
+          assert.equal(url.searchParams.get("timeframe"),"5Min");
+          return Response.json({bars:{}});
+        }
         if (url.pathname === "/v2/positions") return Response.json([{symbol:"SPY",qty:"1",market_value:"250",asset_id:"PRIVATE"}]);
         if (url.pathname === "/v2/orders") return Response.json([{symbol:"SPY",side:"buy",status:"filled",filled_qty:"1",id:"PRIVATE"}]);
         assert.equal(url.href, "https://paper-api.alpaca.markets/v2/account");
@@ -43,6 +49,13 @@ test("a paper connection is accessible only to its authenticated owner", async (
     assert.equal(ownActivity.positions[0].symbol,"SPY");
     assert.equal(ownActivity.orders[0].status,"filled");
     assert.ok(!JSON.stringify(ownActivity).includes("PRIVATE"));
+    const preview = suffix => call("GET",suffix,origin,credentials,"/account-api/paper-preview");
+    assert.equal((await preview("")).status,401);
+    assert.deepEqual((await preview("b")).data,{connected:false});
+    const ownPreview=(await preview("a")).data;
+    assert.equal(ownPreview.etfs.status,"Stock market closed");
+    assert.equal(ownPreview.crypto.rows.length,6);
+    assert.ok(ownPreview.crypto.rows.every(row=>row.signal==="Unavailable"));
     await call("DELETE","b");
     assert.equal((await call("GET","a")).data.connected, true);
     await call("DELETE","a");

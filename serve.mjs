@@ -1,7 +1,34 @@
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 const files = new Map([["/","text/html"],["/index.html","text/html"],["/dashboard.js","text/javascript"],["/style.css","text/css"],["/briefing.mjs","text/javascript"],["/stock-checklist.mjs","text/javascript"],["/public-data.js","text/javascript"],["/account.js","text/javascript"],["/snapshot.json","application/json"]]);
+const assets = new Map();
+function staticAsset(url) {
+  let entry = assets.get(url.href);
+  if (!entry) {
+    entry = readFile(url).then(body => ({
+      body,
+      gzip: gzipSync(body),
+      etag: createHash("sha256").update(body).digest("base64url"),
+    })).catch(error => {
+      assets.delete(url.href);
+      throw error;
+    });
+    assets.set(url.href,entry);
+  }
+  return entry;
+}
+
+function acceptsGzip(value = "") {
+  const choices = new Map(value.toLowerCase().split(",").map(entry => {
+    const [encoding, ...parameters] = entry.trim().split(";");
+    const q = parameters.map(parameter => parameter.trim()).find(parameter => parameter.startsWith("q="));
+    return [encoding.trim(),q ? Number(q.slice(2)) : 1];
+  }));
+  return (choices.get("gzip") ?? choices.get("*") ?? 0) > 0;
+}
 export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tenantService,handleAuth) {
   res.setHeader("X-Content-Type-Options","nosniff");
   const path = req.url?.split("?")[0];
@@ -37,8 +64,21 @@ export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tena
     res.writeHead(404).end(); return;
   }
   try {
-    const body = await readFile(new URL(path === "/" ? "index.html" : path.slice(1),dir));
-    res.writeHead(200,{"Content-Type":files.get(path)+"; charset=utf-8"}).end(req.method==="HEAD"?undefined:body);
+    const asset = await staticAsset(new URL(path === "/" ? "index.html" : path.slice(1),dir));
+    const compressed = acceptsGzip(req.headers["accept-encoding"]);
+    const body = compressed ? asset.gzip : asset.body;
+    const etag = '"' + asset.etag + (compressed ? "-gzip" : "") + '"';
+    const headers = {
+      "Cache-Control":files.get(path) === "text/html" ? "no-cache" : "public, max-age=300",
+      "Content-Type":files.get(path)+"; charset=utf-8",
+      Vary:"Accept-Encoding",
+      ETag:etag,
+    };
+    if (compressed) headers["Content-Encoding"] = "gzip";
+    const validators = (req.headers["if-none-match"] ?? "").split(",").map(value => value.trim().replace(/^W\//,""));
+    if (validators.includes(etag) || validators.includes("*")) return res.writeHead(304,headers).end();
+    headers["Content-Length"] = body.length;
+    res.writeHead(200,headers).end(req.method==="HEAD"?undefined:body);
   } catch {res.writeHead(503).end("Build the demo first.");}
 }
 if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {

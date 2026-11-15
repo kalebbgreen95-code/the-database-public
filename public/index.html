@@ -114,7 +114,7 @@
 <section id="opportunities"><div class="section-heading"><h2>Potential Buys</h2><button id="refresh-opportunities" class="section-refresh" type="button" aria-label="Refresh Potential Buys" title="Refresh Potential Buys"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-opportunities" class="section-refresh-status" role="status"></p><label for="buy-asset-class">Asset class</label> <select id="buy-asset-class"><option value="stocks">Stocks</option><option value="etfs">ETFs</option><option value="crypto">Crypto</option></select><div id="stock-candidates"><p>Trailing P/E below 30×, forward P/E below trailing P/E, and at least two checklist passes. Near matches fill any remaining spots.</p><p id="checklist-status" role="status"></p><ol id="checklist-candidates"></ol></div><div id="fund-candidates" hidden><h3>Tracked ETFs</h3><p>Ranked by expense ratio, then one-year price change.</p><p id="fund-status" role="status"></p><ol id="fund-list"></ol></div><div id="crypto-candidates" hidden><h3>Daily 28-day momentum</h3><p>BTC, ETH, SOL, XRP, LINK, and LTC are evaluated daily using completed UTC candles.</p><p id="crypto-buy-status" role="status"></p><ol id="crypto-buy-list"></ol></div></section>
 </div>
 <section id="activity" aria-labelledby="paper-title">
-<div class="section-heading"><h2 id="paper-title">Paper Trading · Simulation</h2><button id="refresh-activity" class="section-refresh" type="button" aria-label="Refresh Paper Trading" title="Refresh Paper Trading"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-activity" class="section-refresh-status" role="status"></p>
+<div class="section-heading"><h2 id="paper-title"><a href="https://app.alpaca.markets/paper/dashboard/overview" target="_blank" rel="noopener noreferrer">Paper Trading</a></h2><button id="refresh-activity" class="section-refresh" type="button" aria-label="Refresh Paper Trading" title="Refresh Paper Trading"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-activity" class="section-refresh-status" role="status"></p>
 <div id="activity-push-detail" class="push-detail" tabindex="-1" hidden></div>
 <details id="connected-paper" class="paper-panel" hidden open>
   <summary>Connected Alpaca Paper account</summary>
@@ -122,8 +122,13 @@
   <p id="connected-paper-equity"></p>
   <h3>Open positions</h3><ul id="connected-paper-positions"></ul>
   <h3>Recent orders</h3><ul id="connected-paper-orders"></ul>
+  <h3>Strategy decisions</h3>
+  <p>Preview live crypto and ETF signals. Automated orders and the live stock checklist are pending.</p>
+  <button id="paper-preview-check" type="button">Check signals</button>
+  <p id="paper-preview-status" role="status"></p>
+  <ul id="paper-preview-rows"></ul>
 </details>
-<div class="paper-equity">
+<p>Simulated strategy results</p><div class="paper-equity">
 <h3>Account equity</h3>
 <dl id="paper-score" class="paper-score"></dl>
 <p id="equity-summary"></p>

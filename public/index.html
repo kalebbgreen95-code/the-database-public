@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111817">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>The Database · Public Demo</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./public.css">
+<script type="module" src="./dashboard.js"></script>
+</head>
+<body><main>
+<div class="pinned-header">
+<header><div class="brand-title"><h1><a href="#overview">The Database</a></h1></div>
+<nav aria-label="Dashboard pages"><label for="dashboard-page">Page</label><select id="dashboard-page">
+<option value="overview">Overview</option><option value="search">Search &amp; Watchlist</option>
+<option value="opportunities">Potential Buys</option><option value="ai-watchlist">AI Watchlist</option>
+<option value="crypto">Crypto</option><option value="news">News</option>
+<option value="activity">Paper Trading</option></select></nav></header>
+<p class="header-status">Public demo · no sign-in · simulated assets and trades</p>
+</div>
+<p id="status" role="status">Loading the latest demo snapshot…</p>
+<section id="overview" data-page>
+<div class="overview-heading"><h2>Overview</h2><a id="overview-equity" href="#activity">View simulated account</a></div>
+<p>Explore the dashboard and its automated trading strategy with a synthetic market and $5,000 in starting demo cash.</p>
+<div class="grid"><div><h3>Simulated equity · rolling 30-day replay</h3><div id="equity-chart"></div></div>
+<div><h3>Public market data · U.S. Treasury yields</h3><p id="rates">Awaiting data.</p>
+<a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve">U.S. Treasury daily rates</a></div></div>
+</section>
+<section id="search" data-page hidden><h2>Search &amp; Watchlist</h2><p>Browse the fixed demo universe. All displayed asset prices are synthetic.</p>
+<label>Symbol or name <input id="query" type="search" maxlength="40" autocomplete="off"></label>
+<div id="watchlist-results"></div></section>
+<section id="asset" data-page hidden><p><a id="asset-back" href="#search">← Back to watchlist</a></p><h2 id="asset-title">Asset details</h2><div id="asset-info"></div></section>
+<section id="opportunities" data-page hidden><h2>Potential Buys</h2><p>Illustrative checklist and momentum signals using synthetic data.</p>
+<label>Asset class <select id="buy-asset-class"><option value="Stock">Stocks</option><option value="ETF">ETFs</option><option value="Crypto">Crypto</option></select></label>
+<div id="candidates"></div></section>
+<section id="ai-watchlist" data-page hidden><h2>AI Watchlist</h2><p>Company descriptions and illustrative checklist results.</p><div id="ai-results"></div></section>
+<section id="crypto" data-page hidden><h2>Crypto</h2><p>Daily 28-day momentum signals on synthetic closes.</p><div id="crypto-results"></div></section>
+<section id="news" data-page hidden><h2>Market news</h2><p>Public releases from the Federal Reserve.</p><ul id="headlines"></ul><a href="https://www.federalreserve.gov/newsevents/pressreleases.htm">Federal Reserve press releases</a></section>
+<section id="activity" data-page hidden><h2>Paper Trading · Simulation</h2>
+<p>This bot scores completed sample bars and fills orders at a modeled price. The 30-day window replays from fresh demo cash, so results may change as the window moves. No brokerage connection or real orders.</p>
+<p id="balance"></p><h3>Open simulated positions</h3><div id="positions"></div>
+<h3>Simulated fills</h3><div id="trades" class="scroll"></div></section>
+</main></body></html>

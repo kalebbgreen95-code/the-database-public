@@ -1,0 +1,13 @@
+[hidden]{display:none!important}
+.brand-title{min-width:0}
+.pinned-header{padding-block:8px}
+.pinned-header nav{display:flex;align-items:center;gap:8px}
+.pinned-header nav label{margin:0}
+.pinned-header nav select{max-width:48vw}
+.public-scroll{overflow:auto}
+.public-chart{display:block;width:100%;height:auto;min-height:65px;color:#8cf0b4;max-height:240px}
+.public-chart path{stroke:currentColor;stroke-width:2.5;fill:none;vector-effect:non-scaling-stroke}
+.public-meta{font-variant-numeric:tabular-nums}
+.public-list li{margin-bottom:.55rem}
+#activity{margin-top:0}
+@media(max-width:640px){main{padding-top:10px}.pinned-header header{align-items:center}.pinned-header nav label{display:none}.header-status{margin-top:8px}}

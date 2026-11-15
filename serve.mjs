@@ -122,7 +122,7 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   if (process.env.DEMO_ACCOUNT_ORIGIN) {
     const { createTenantService, openConnectionStore, createHostedConnectionStore, createHostedSnapshotStore } = await import("./lib/tenant-service.mjs");
     const env = Object.fromEntries(Object.entries(process.env)
-      .filter(([name]) => name.startsWith("DEMO_"))
+      .filter(([name]) => /^(?:DEMO_|USAGE_RENDER_|ROBINHOOD_SNAPSHOT_|SNAPTRADE_)/.test(name) || name === "RENDER_SERVICE_ID")
       .map(([name, value]) => [name, value.trim()]));
     const { DEMO_ACCOUNT_ORIGIN, DEMO_ACCOUNT_DB, DEMO_ACCOUNT_ENCRYPTION_KEY,
       DEMO_AUTH_URL, DEMO_AUTH_PUBLISHABLE_KEY, DEMO_SUPABASE_SECRET_KEY } = env;

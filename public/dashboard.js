@@ -755,19 +755,28 @@ const watchlistQuote = new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 8,
 });
 
-function renderRobinhood(data, portfolioOnly = false) {
-  const listPrefix = portfolioOnly ? "portfolio-" : "watchlist-";
-  const synced = portfolioOnly ? data.robinhoodPortfolio : null;
-  const asOf = synced?.asOf ?? data.robinhood.asOf;
-  $(portfolioOnly ? "portfolio-imported" : "imported").textContent = asOf
-    ? (synced ? "Demo portfolio · " : "Demo snapshot · ") + date(asOf) + " ET" : "No Demo snapshot";
-  const marketBySymbol = new Map(data.market.map(row => [row.symbol, row]));
+document.addEventListener("robinhood-snapshot",event=>{
+  if (event.detail) renderRobinhood(null,true,event.detail);
+  else for (const id of ["imported","value","return","crypto","stocks"]) {
+    const target = $("robinhood-"+id);
+    target.replaceChildren();
+    delete target.dataset.rendered;
+  }
+});
+function renderRobinhood(data, portfolioOnly = false, imported = null) {
+  const listPrefix = imported ? "robinhood-" : portfolioOnly ? "portfolio-" : "watchlist-";
+  const synced = imported ?? (portfolioOnly ? data.robinhoodPortfolio : null);
+  const asOf = synced?.asOf ?? data?.robinhood.asOf;
+  const importLabel = imported ? "Robinhood snapshot" : synced ? "Demo portfolio" : "Demo snapshot";
+  $(portfolioOnly ? listPrefix + "imported" : "imported").textContent = asOf
+    ? importLabel + " · " + date(asOf) + " ET" : "No demo snapshot";
+  const marketBySymbol = new Map((data?.market ?? []).map(row => [row.symbol, row]));
   const holdings = (synced?.positions ?? []).map(item => {
-    const market = data.portfolioQuotes?.[item.symbol] ?? marketBySymbol.get(item.symbol);
+    const market = data?.portfolioQuotes?.[item.symbol] ?? marketBySymbol.get(item.symbol);
     if ((Number.isFinite(item.price) && item.price > 0) ||
         !Number.isFinite(market?.time) || market.time > Date.now() + 5000 ||
         !Number.isFinite(market.price) || market.price <= 0) {
-      return {...item, quoteSource: "Demo snapshot"};
+      return {...item, quoteSource: imported ? "Robinhood snapshot" : "Demo snapshot"};
     }
     return {...item, price: market.price, quoteAt: market.time,
       quoteSource: market.delivery === "Coinbase Exchange" ? market.delivery : "Simulated"};
@@ -780,14 +789,14 @@ function renderRobinhood(data, portfolioOnly = false) {
       Number.isFinite(price) && price > 0 && Number.isFinite(quantity) && quantity !== 0);
     const marketValue = hasPrices ? holdings.reduce((sum, { price, quantity }) => sum + price * quantity, 0) : null;
     const hasAccountValue = Number.isFinite(synced?.accountValue);
-    const usesMarketQuotes = holdings.some(item => item.quoteSource !== "Demo snapshot");
-    $("portfolio-value").textContent = hasAccountValue ? "Demo portfolio value · " + money(synced.accountValue)
+    const usesMarketQuotes = !imported && holdings.some(item => item.quoteSource !== "Demo snapshot");
+    $(listPrefix + "value").textContent = hasAccountValue ? (imported ? "Robinhood account total · " : "Demo portfolio value · ") + money(synced.accountValue)
       : (usesMarketQuotes ? "Estimated holdings value · " : "Holdings value · ") +
         (Number.isFinite(marketValue) ? money(marketValue) : "Unavailable");
     const totalBasis = holdings.reduce((sum, item) => sum + Math.abs(item.quantity) * item.averageCost, 0);
     const complete = holdings.length && holdings.every(item => pnl(item) !== null);
     const total = complete ? holdings.reduce((sum, item) => sum + pnl(item) * Math.abs(item.quantity) * item.averageCost, 0) / totalBasis : null;
-    const summary = $("portfolio-return");
+    const summary = $(listPrefix + "return");
     summary.replaceChildren(...percentageText(total === null ? "Holdings gain/loss unavailable" : "Holdings gain/loss vs. cost · " + (total > 0 ? "+" : "") + percent(total)));
   }
   const seen = new Set();

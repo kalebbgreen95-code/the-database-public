@@ -84,24 +84,12 @@ if (config?.accountMode) {
   const snapshotFile = document.getElementById("robinhood-snapshot-file");
   const snapshotAccount = document.getElementById("robinhood-snapshot-account");
   const snapshotHoldings = document.getElementById("robinhood-snapshot-holdings");
-  const snapshotSummary = document.getElementById("robinhood-snapshot-summary");
-  const snapshotRows = document.getElementById("robinhood-snapshot-rows");
+  let savedSnapshot;
   let snapshotRequest = 0;
   function showSnapshot(snapshot) {
+    savedSnapshot = snapshot;
     snapshotHoldings.hidden = !snapshot;
-    snapshotSummary.textContent = snapshot
-      ? "Account total " + amount(snapshot.accountValue) + " · Snapshot " +
-        new Date(snapshot.asOf).toLocaleString("en-US",{timeZone:"America/New_York"}) + " ET"
-      : "";
-    snapshotRows.replaceChildren(...(snapshot?.positions ?? []).map(row=>{
-      const item = document.createElement("li");
-      const link = document.createElement("a");
-      link.href = publicRoute("/asset?" + new URLSearchParams({symbol:row.symbol}));
-      link.textContent = row.symbol;
-      item.append(link," · " + row.quantity + " · " + (row.price == null ? "Price unavailable" : amount(row.price) + " per unit"));
-      return item;
-    }));
-    if (snapshot && !snapshot.positions.length) fillList(snapshotRows,[],"No open positions.");
+    document.dispatchEvent(new CustomEvent("robinhood-snapshot",{detail:snapshot}));
   }
   function showSnapshotSignIn() {
     ++snapshotRequest;
@@ -131,6 +119,15 @@ if (config?.accountMode) {
   if (onPortfolio) {
     snapshotPanel.hidden = false;
     snapshotAccount.addEventListener("click",openAccount);
+    document.getElementById("robinhood-snapshot-download").addEventListener("click",()=>{
+      if (!savedSnapshot) return;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(savedSnapshot,null,2)+"\n"],{type:"application/json"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "robinhood-account-total.json";
+      link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    });
     void getSnapshot();
     document.getElementById("refresh-robinhood-portfolio").addEventListener("click",()=>void getSnapshot());
     addEventListener("pageshow",event=>{

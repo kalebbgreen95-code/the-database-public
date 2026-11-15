@@ -25,6 +25,77 @@ if (config?.accountMode) {
   const livePositions = document.getElementById("connected-paper-positions");
   const liveOrders = document.getElementById("connected-paper-orders");
   const paramsForScreen = new URLSearchParams(location.search);
+  const onUsage = paramsForScreen.get("screen") === "usage" || location.hash === "#usage";
+  const usageForm = document.getElementById("usage-import");
+  const usageAccount = document.getElementById("usage-account-open");
+  const usageStatus = document.getElementById("usage-account-status");
+  const renderMeter = document.getElementById("render-usage-meter");
+  const et = value=>new Date(value).toLocaleString("en-US",{timeZone:"America/New_York"}) + " ET";
+  let usageRequest = 0;
+  function showUsage(snapshot) {
+    const codex = snapshot?.codex;
+    const bandwidth = snapshot?.render;
+    document.getElementById("codex-usage-checked").textContent =
+      codex ? "Last checked " + et(codex.checkedAt) : "No Codex usage snapshot.";
+    document.getElementById("codex-usage-windows").replaceChildren(...(codex?.windows ?? []).map(row=>{
+      const item = document.createElement("li");
+      const windowLabel = row.minutes%1440 === 0 ? row.minutes/1440 + "-day"
+        : row.minutes%60 === 0 ? row.minutes/60 + "-hour" : row.minutes + "-minute";
+      item.textContent = windowLabel + " limit · " + row.remaining + "% remaining · Resets " + et(row.resetsAt);
+      return item;
+    }));
+    document.getElementById("render-usage-summary").textContent = bandwidth
+      ? bandwidth.usedMB + " MB of " + bandwidth.includedGB + " GB used · " + bandwidth.month +
+        " workspace total · Last checked " + et(bandwidth.checkedAt)
+      : "No Render bandwidth snapshot.";
+    renderMeter.hidden = !bandwidth;
+    if (bandwidth) {
+      renderMeter.max = bandwidth.includedGB*1000;
+      renderMeter.value = bandwidth.usedMB;
+    }
+  }
+  function showUsageSignIn() {
+    ++usageRequest;
+    showUsage(null);
+    usageForm.reset();
+    usageForm.hidden = true;
+    usageAccount.hidden = false;
+    usageStatus.textContent = "Sign in to view your saved usage.";
+  }
+  async function fetchUsage(method="GET",data) {
+    const request = ++usageRequest;
+    try {
+      const response = await call("usage-snapshot",method,data);
+      const result = await response.json();
+      if (request !== usageRequest) return;
+      if (response.status === 401) return showUsageSignIn();
+      if (!response.ok) throw Error(result.error ?? "Usage data unavailable.");
+      showUsage(result.snapshot);
+      usageForm.hidden = false;
+      usageAccount.hidden = true;
+      usageStatus.textContent = method === "PUT" ? "Usage snapshot imported." : "";
+    } catch (error) {
+      if (request === usageRequest) usageStatus.textContent = error.message;
+      return false;
+    }
+  }
+  if (onUsage) {
+    showUsage(null);
+    void fetchUsage();
+    usageAccount.addEventListener("click",openAccount);
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(fetchUsage());});
+    usageForm.addEventListener("submit",async event=>{
+      event.preventDefault();
+      const file = document.getElementById("usage-import-file").files[0];
+      const button = usageForm.querySelector("button");
+      if (!file || file.size>8192 || button.disabled) return;
+      button.disabled = true;
+      try {
+        if (await fetchUsage("PUT",JSON.parse(await file.text())) !== false) usageForm.reset();
+      } catch { usageStatus.textContent = "Choose a valid Usage JSON snapshot."; }
+      finally { button.disabled = false; }
+    });
+  }
   const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
   const onPortfolio = paramsForScreen.get("screen") === "robinhood-portfolio" || location.hash === "#robinhood-portfolio";
   const amount = value => value != null && Number.isFinite(Number(value)) ? money.format(Number(value)) : "unavailable";
@@ -398,6 +469,7 @@ if (config?.accountMode) {
     const response = await call("sign-out","POST");
     if (!response.ok) throw Error("Sign-out failed.");
     status.textContent = "Signed out.";
+    if (onUsage) showUsageSignIn();
     if (onPortfolio) showSnapshotSignIn();
     document.dispatchEvent(new Event("paper-connection-changed"));
     clearActivity();

@@ -142,12 +142,14 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
     const store = DEMO_SUPABASE_SECRET_KEY ? createHostedConnectionStore({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey}) : openConnectionStore(DEMO_ACCOUNT_DB,encryptionKey);
     const snapshotStore = DEMO_SUPABASE_SECRET_KEY && createHostedSnapshotStore({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey});
+    const usageStore = DEMO_SUPABASE_SECRET_KEY && createHostedSnapshotStore({projectUrl:DEMO_AUTH_URL,
+      serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,kind:"usage"});
     const browserPush = DEMO_SUPABASE_SECRET_KEY && createBrowserPush({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});
     if (DEMO_SUPABASE_SECRET_KEY) paperSchedule = createPaperSchedule({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,store,browserPush});
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,
-      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore});
+      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});
   }
   const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth,paperSchedule));

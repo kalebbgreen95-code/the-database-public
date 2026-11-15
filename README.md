@@ -30,3 +30,5 @@ The scheduled job starts with $5,000 in fresh demo cash and replays 30 completed
 For future licensed quotes or a different host, add a build-side adapter that normalizes approved fields and restricts the exported data to what the provider permits for public display. Put any future secrets in the runner's secret store, and never pass them through the snapshot builder. The static output can be published on another static host while keeping the same scheduled build. No paid provider or hosting service is enabled.
 
 [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits) · [Scheduled workflow limits](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
+
+Bump the version in package.json for each app release. The header reads this version at build time. Refreshing data alone keeps the current app version.

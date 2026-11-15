@@ -33,6 +33,35 @@ if (config?.accountMode) {
   let previewRunning = false;
   const runButton = document.getElementById("paper-run");
   const runStatus = document.getElementById("paper-run-status");
+  const scheduleButton = document.getElementById("paper-schedule");
+  const scheduleStatus = document.getElementById("paper-schedule-status");
+  let scheduled = false;
+  function renderSchedule(data) {
+    scheduled = data.enabled;
+    scheduleButton.textContent = scheduled ? "Disable scheduled paper trading" : "Enable scheduled paper trading";
+    scheduleStatus.textContent = scheduled
+      ? "Checks about every 20 minutes. " + (data.outcome ?? "Waiting for the first scheduled check.")
+      : "Scheduled crypto checks are off.";
+  }
+  async function updateSchedule(method="GET") {
+    scheduleButton.disabled = true;
+    try {
+      const response = await call("paper-schedule",method);
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error ?? "Paper schedule unavailable.");
+      renderSchedule(data);
+      scheduleButton.hidden = false;
+    } catch (error) {
+      scheduleStatus.textContent = error.message;
+    } finally {
+      scheduleButton.disabled = false;
+    }
+  }
+  if (onPaperScreen) {
+    void updateSchedule();
+    scheduleButton.addEventListener("click",()=>void updateSchedule(scheduled ? "DELETE" : "PUT"));
+    document.getElementById("refresh-activity").addEventListener("click",()=>void updateSchedule());
+  }
   runButton.addEventListener("click",async()=>{
     runButton.disabled = true;
     runStatus.textContent = "Checking Alpaca Paper for a qualifying crypto order…";

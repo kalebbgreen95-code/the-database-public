@@ -1482,16 +1482,7 @@ if (page === "news") {
 
 function renderNews() {
   if (!current) return;
-  const sourcePicker = $("news-source");
-  const previous = sourcePicker.value;
-  const sources = current.publicSources ?? [];
-  const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source),"SEC filings","Benzinga"]);
-  sourcePicker.replaceChildren(new Option("All sources",""),new Option("Government & Economy","government"),
-    ...[...labels].filter(label=>label && label !== "U.S. Treasury").map(label=>new Option(label,label)));
-  sourcePicker.value = previous === "government" || labels.has(previous) ? previous : "";
-  const source = sourcePicker.value;
-  $("news-coverage").textContent = sources.filter(feed=>feed.source !== "U.S. Treasury").map(feed=>
-    feed.source + (feed.available ? "" : " (unavailable)")).join(" · ");
+  const source = $("news-source").value;
   $("news-date").textContent = new Date(current.updatedAt).toLocaleDateString("en-US", {
     timeZone: timezone, dateStyle: "full",
   }) + " · Eastern time";

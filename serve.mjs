@@ -68,12 +68,12 @@ export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tena
     if (session) headers.set("authorization","Bearer "+session);
     const reply = tenantService ? await tenantService({
       path, method:req.method, headers, searchParams:new URL(req.url,"http://localhost").searchParams,
-      async readJson() {
+      async readJson(limit=2048) {
         let size = 0;
         const chunks = [];
         for await (const chunk of req) {
           size += chunk.length;
-          if (size > 2048) {
+          if (size > limit) {
             req.resume();
             return null;
           }
@@ -112,7 +112,7 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   let paperSchedule;
   let handleAuth;
   if (process.env.DEMO_ACCOUNT_ORIGIN) {
-    const { createTenantService, openConnectionStore, createHostedConnectionStore } = await import("./lib/tenant-service.mjs");
+    const { createTenantService, openConnectionStore, createHostedConnectionStore, createHostedSnapshotStore } = await import("./lib/tenant-service.mjs");
     const env = Object.fromEntries(Object.entries(process.env)
       .filter(([name]) => name.startsWith("DEMO_"))
       .map(([name, value]) => [name, value.trim()]));
@@ -132,12 +132,14 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
     const { createTenantAuth } = await import("./lib/tenant-auth.mjs");
     const encryptionKey = Buffer.from(DEMO_ACCOUNT_ENCRYPTION_KEY,"hex");
     const store = DEMO_SUPABASE_SECRET_KEY ? createHostedConnectionStore({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey}) : openConnectionStore(DEMO_ACCOUNT_DB,encryptionKey);
+    const snapshotStore = DEMO_SUPABASE_SECRET_KEY && createHostedSnapshotStore({projectUrl:DEMO_AUTH_URL,
+      serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey});
     const browserPush = DEMO_SUPABASE_SECRET_KEY && createBrowserPush({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});
     if (DEMO_SUPABASE_SECRET_KEY) paperSchedule = createPaperSchedule({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,store,browserPush});
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,
-      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule});
+      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});
   }
   const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth,paperSchedule));

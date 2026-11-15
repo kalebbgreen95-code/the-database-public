@@ -78,6 +78,96 @@ if (config?.accountMode) {
     document.getElementById("refresh-robinhood-portfolio").addEventListener("click",()=>void refreshPortfolio());
     addEventListener("pageshow",event=>{ if (event.persisted) void refreshPortfolio(); });
   }
+  const snapshotPanel = document.getElementById("robinhood-snapshot-panel");
+  const snapshotForm = document.getElementById("robinhood-snapshot-import");
+  const snapshotStatus = document.getElementById("robinhood-snapshot-status");
+  const snapshotFile = document.getElementById("robinhood-snapshot-file");
+  const snapshotAccount = document.getElementById("robinhood-snapshot-account");
+  const snapshotHoldings = document.getElementById("robinhood-snapshot-holdings");
+  const snapshotSummary = document.getElementById("robinhood-snapshot-summary");
+  const snapshotRows = document.getElementById("robinhood-snapshot-rows");
+  let snapshotRequest = 0;
+  function showSnapshot(snapshot) {
+    snapshotHoldings.hidden = !snapshot;
+    snapshotSummary.textContent = snapshot
+      ? "Account total " + amount(snapshot.accountValue) + " · Snapshot " +
+        new Date(snapshot.asOf).toLocaleString("en-US",{timeZone:"America/New_York"}) + " ET"
+      : "";
+    snapshotRows.replaceChildren(...(snapshot?.positions ?? []).map(row=>{
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = publicRoute("/asset?" + new URLSearchParams({symbol:row.symbol}));
+      link.textContent = row.symbol;
+      item.append(link," · " + row.quantity + " · " + (row.price == null ? "Price unavailable" : amount(row.price) + " per unit"));
+      return item;
+    }));
+    if (snapshot && !snapshot.positions.length) fillList(snapshotRows,[],"No open positions.");
+  }
+  function showSnapshotSignIn() {
+    ++snapshotRequest;
+    showSnapshot(null);
+    snapshotForm.reset();
+    snapshotForm.hidden = true;
+    snapshotAccount.hidden = false;
+    snapshotStatus.textContent = "Sign in to import your Robinhood Portfolio snapshot.";
+  }
+  async function getSnapshot() {
+    const request = ++snapshotRequest;
+    try {
+      const response = await call("robinhood-snapshot");
+      if (request !== snapshotRequest) return;
+      if (response.status === 401) return showSnapshotSignIn();
+      if (!response.ok) throw Error("Couldn’t load your Robinhood snapshot.");
+      const {snapshot} = await response.json();
+      if (request !== snapshotRequest) return;
+      snapshotAccount.hidden = true;
+      snapshotForm.hidden = false;
+      showSnapshot(snapshot);
+      snapshotStatus.textContent = snapshot ? "" : "Upload the JSON export from the original Robinhood Portfolio page.";
+    } catch (error) {
+      if (request === snapshotRequest) snapshotStatus.textContent = error.message;
+    }
+  }
+  if (onPortfolio) {
+    snapshotPanel.hidden = false;
+    snapshotAccount.addEventListener("click",openAccount);
+    void getSnapshot();
+    document.getElementById("refresh-robinhood-portfolio").addEventListener("click",()=>void getSnapshot());
+    addEventListener("pageshow",event=>{
+      if (event.persisted) {
+        showSnapshot(null);
+        void getSnapshot();
+      }
+    });
+    snapshotForm.addEventListener("submit",async event=>{
+      event.preventDefault();
+      const button = snapshotForm.querySelector("button");
+      if (button.disabled) return;
+      const request = ++snapshotRequest;
+      button.disabled = true;
+      try {
+        const file = snapshotFile.files[0];
+        if (!file || file.size > 65536) throw Error("Choose a Robinhood Portfolio JSON file up to 64 KiB.");
+        let snapshot;
+        try { snapshot = JSON.parse(await file.text()); }
+        catch { throw Error("This file does not contain valid JSON."); }
+        if (request !== snapshotRequest) return;
+        const response = await call("robinhood-snapshot","PUT",snapshot);
+        if (request !== snapshotRequest) return;
+        if (response.status === 401) return showSnapshotSignIn();
+        const data = await response.json();
+        if (request !== snapshotRequest) return;
+        if (!response.ok) throw Error(data.error ?? "The snapshot could not be imported.");
+        showSnapshot(data.snapshot);
+        snapshotForm.reset();
+        snapshotStatus.textContent = "Snapshot imported.";
+      } catch (error) {
+        if (request === snapshotRequest) snapshotStatus.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
   const previewButton = document.getElementById("paper-preview-check");
   const previewStatus = document.getElementById("paper-preview-status");
   const previewRows = document.getElementById("paper-preview-rows");
@@ -359,6 +449,7 @@ if (config?.accountMode) {
     const response = await call("sign-out","POST");
     if (!response.ok) throw Error("Sign-out failed.");
     status.textContent = "Signed out.";
+    if (onPortfolio) showSnapshotSignIn();
     document.dispatchEvent(new Event("paper-connection-changed"));
     clearActivity();
     clearPortfolio();

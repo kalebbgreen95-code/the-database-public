@@ -6,6 +6,8 @@
 <body><main>
 <div class="pinned-header">
 <header><div class="brand"><div class="brand-copy"><div class="brand-title"><h1><a href="./" aria-label="The Database home">The Database</a></h1><span id="connection-status" class="connecting" role="status">Loading</span></div><p id="status" role="status" hidden></p></div></div><div class="controls">
+<button id="configure-button" class="control-link" type="button" hidden>Configure</button>
+<button id="update-app" class="control-link" type="button">Update</button>
 <nav aria-label="Dashboard pages">
 <select id="dashboard-page" aria-label="Dashboard page">
 <option value="/search">Search</option>
@@ -23,9 +25,10 @@
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
 <span id="notifications-unread" hidden></span>
 </a></div></header>
-<div class="header-status"><small id="app-version-status" role="status"></small><small>Public edition · simulated portfolio, prices and fills</small></div>
+<div class="header-status"><small id="app-version-status" role="status"></small></div>
 </div>
 <section id="overview">
+  <p class="overview-disclosure">Public edition · simulated portfolio, prices and fills</p>
   <div class="overview-heading"><h2 id="overview-title">Overview</h2><div class="overview-balances"><a id="overview-equity" href="./?screen=activity"></a><p id="overview-cash"></p></div></div>
   <div id="overview-critical">
     <h3>Critical news today</h3>

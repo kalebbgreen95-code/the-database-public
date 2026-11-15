@@ -137,6 +137,9 @@ if (config?.accountMode) {
     history.replaceState(history.state,"",url);
   }
   pagePicker.add(new Option("Account", "/account"));
+  const configure = document.getElementById("configure-button");
+  configure.hidden = false;
+  configure.addEventListener("click",openAccount);
   function openAccount() {
     if (!dialog.open) dialog.showModal();
     void run(update);

@@ -1661,7 +1661,8 @@ async function refreshDashboard(refresh = false) {
     $("public-rates").textContent = rates
       ? rates.date + " · " + rates.rates.map((n,i) => ["3M","2Y","10Y","30Y"][i] + " " + n.toFixed(2) + "%").join(" · ")
       : "Public rates were unavailable for this snapshot.";
-    $("app-version-status").textContent = "Snapshot " + date(data.updatedAt) + " ET";
+    const version = document.querySelector('meta[name="app-version"]').content;
+    $("app-version-status").textContent = "v" + version + " · Data refreshed at " + date(data.updatedAt) + " ET";
     if (page === "opportunities") {
       refreshPotentialBuyPrices(data.market);
       renderCryptoBuys(data);
@@ -1679,6 +1680,19 @@ async function refreshDashboard(refresh = false) {
 if (page === "asset") void loadAssetDetails();
 void refreshDashboard();
 void openPushDetail();
+const updateButton = $("update-app");
+updateButton.addEventListener("click",async()=>{
+  updateButton.disabled = true;
+  updateButton.setAttribute("aria-busy","true");
+  try {
+    if (await refreshDashboard(true) && (page === "ai-watchlist" || page === "opportunities")) {
+      await loadChecklistBuys(page === "ai-watchlist");
+    }
+  } finally {
+    updateButton.disabled = false;
+    updateButton.removeAttribute("aria-busy");
+  }
+});
 const refreshName = page || "overview";
 const refreshButton = $("refresh-" + refreshName);
 if (refreshButton) {

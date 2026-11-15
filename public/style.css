@@ -17,7 +17,7 @@ ul{padding-left:18px;margin:6px 0 14px}li{padding:4px 0;overflow-wrap:anywhere}#
 @media(max-width:850px){.grid{grid-template-columns:1fr}header{align-items:flex-start}}
 .briefing{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px}
 #activity{margin:16px 0}
-.controls{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:stretch;gap:8px}
+.controls{display:grid;grid-template-columns:max-content max-content minmax(0,1fr) 44px;align-items:stretch;gap:8px}
 #connection-status{display:inline-flex;align-items:center;gap:7px;margin-inline-start:auto;white-space:nowrap;font-size:.85rem}
 #connection-status::before{content:"";width:9px;height:9px;border-radius:50%;background:#ff7777}
 #connection-status.connected::before{background:#52e099}
@@ -96,6 +96,7 @@ header{flex-direction:column;align-items:stretch;gap:10px}
 .brand-title h1{margin:0;font-size:clamp(1.35rem,4vw,2.1rem)}
 @media(max-width:520px){.brand-title h1{font-size:clamp(1.1rem,5vw,1.6rem)}#connection-status{font-size:.8rem}}
 .brand p{margin-bottom:0}
+.controls:has(#configure-button[hidden]){grid-template-columns:max-content minmax(0,1fr) 44px}
 .controls nav{margin:0;min-width:0;display:grid}
 .overview-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .overview-balances{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px 12px}
@@ -103,7 +104,7 @@ header{flex-direction:column;align-items:stretch;gap:10px}
 .overview-balances > :empty{display:none}
 #overview-equity{color:inherit;text-decoration:none}
 #dashboard-page{width:100%;min-width:0;min-height:44px;background:#1a2421}
-.controls > button,.controls .control-link{min-height:36px;border-color:#3b5148}
+.controls > button,.controls .control-link{min-height:44px;border-color:#3b5148}
 
 :is(#robinhood,#robinhood-portfolio){max-width:780px;background:#111817}
 :is(#robinhood,#robinhood-portfolio) h3{font-size:1.25rem;margin:24px 0 4px}
@@ -300,3 +301,5 @@ header{flex-direction:column;align-items:stretch;gap:10px}
   #overview .overview-grid { grid-template-columns: 1fr; }
   .chart-interval-label { display: none; }
 }
+
+.header-status{border-bottom:1px solid #34463e;padding-bottom:7px}.overview-disclosure{font-size:.8rem}

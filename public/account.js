@@ -122,6 +122,22 @@ if (config?.accountMode) {
   const snapshotAccount = document.getElementById("robinhood-snapshot-account");
   const snapshotHoldings = document.getElementById("robinhood-snapshot-holdings");
   let snapshotRequest = 0;
+  let snapshotNoticeTimer;
+  let snapshotNoticeFade;
+  function showSnapshotStatus(message,temporary = false) {
+    clearTimeout(snapshotNoticeTimer);
+    snapshotNoticeFade?.cancel();
+    snapshotStatus.textContent = message;
+    if (!temporary) return;
+    snapshotNoticeTimer = setTimeout(()=>{
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        snapshotStatus.textContent = "";
+        return;
+      }
+      snapshotNoticeFade = snapshotStatus.animate([{opacity:1},{opacity:0}],{duration:250});
+      snapshotNoticeFade.onfinish = ()=>{ snapshotStatus.textContent = ""; };
+    },3000);
+  }
   function showSnapshot(snapshot) {
     snapshotHoldings.hidden = !snapshot;
     document.dispatchEvent(new CustomEvent("robinhood-snapshot",{detail:snapshot}));
@@ -130,7 +146,7 @@ if (config?.accountMode) {
     ++snapshotRequest;
     showSnapshot(null);
     snapshotAccount.hidden = false;
-    snapshotStatus.textContent = "Sign in to view your Robinhood Portfolio.";
+    showSnapshotStatus("Sign in to view your Robinhood Portfolio.");
   }
   async function getSnapshot(method = "GET") {
     const request = ++snapshotRequest;
@@ -144,12 +160,12 @@ if (config?.accountMode) {
       if (request !== snapshotRequest) return;
       snapshotAccount.hidden = true;
       showSnapshot(snapshot);
-      snapshotStatus.textContent = method === "POST"
+      showSnapshotStatus(method === "POST"
         ? (sourceConfigured === false ? "Live snapshot source is unavailable."
           : updated ? "New Robinhood snapshot imported." : "No newer Robinhood snapshot is available.")
-        : (snapshot ? "" : "No Robinhood snapshot is available.");
+        : (snapshot ? "" : "No Robinhood snapshot is available."), method === "POST" && updated);
     } catch (error) {
-      if (request === snapshotRequest) snapshotStatus.textContent = error.message;
+      if (request === snapshotRequest) showSnapshotStatus(error.message);
       return false;
     }
   }

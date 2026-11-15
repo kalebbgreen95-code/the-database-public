@@ -1,4 +1,5 @@
 import { publicFeedUpdate } from "./lib/economic-news.mjs";
+import { refreshPublicCrypto } from "./lib/public-crypto.mjs";
 import { createBrowserPush } from "./lib/browser-push.mjs";
 import { createPaperSchedule } from "./lib/paper-schedule.mjs";
 import manifest from "./package.json" with { type: "json" };
@@ -36,10 +37,12 @@ function acceptsGzip(value = "") {
   return (choices.get("gzip") ?? choices.get("*") ?? 0) > 0;
 }
 let publicUpdate;
-function sharedPublicUpdate() {
+function sharedPublicUpdate(manual) {
   const now = Date.now();
-  if (!publicUpdate || now >= publicUpdate.expires) {
-    publicUpdate = {expires:now+10*60000, result:publicFeedUpdate(new Date(now)).catch(()=>null)};
+  if (!publicUpdate || now-publicUpdate.started >= (manual ? 60000 : 10*60000)) {
+    const date = new Date(now);
+    publicUpdate = {started:now,result:Promise.all([publicFeedUpdate(date),refreshPublicCrypto(date)])
+      .then(([feeds,cryptoMarket])=>({...feeds,cryptoMarket})).catch(()=>null)};
   }
   return publicUpdate.result;
 }
@@ -52,9 +55,14 @@ export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tena
     res.writeHead(status,{"Cache-Control":"no-store"}).end();
     return;
   }
-  if (path === "/api/public-update" && req.method === "GET") {
-    const result = await sharedPublicUpdate();
-    res.writeHead(result ? 200 : 503,{"Content-Type":"application/json","Cache-Control":"public, max-age=60"});
+  if (path === "/api/public-update" && ["GET","POST"].includes(req.method)) {
+    const manual = req.method === "POST";
+    if (manual && req.headers["sec-fetch-site"] === "cross-site") {
+      res.writeHead(403).end();
+      return;
+    }
+    const result = await sharedPublicUpdate(manual);
+    res.writeHead(result ? 200 : 503,{"Content-Type":"application/json","Cache-Control":manual ? "no-store" : "public, max-age=60"});
     res.end(JSON.stringify({version:manifest.version,...result}));
     return;
   }

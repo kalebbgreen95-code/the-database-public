@@ -71,11 +71,11 @@ if (config?.accountMode) {
       portfolio.hidden = false;
       portfolioStatus.textContent = error.message;
       portfolioPositions.replaceChildren();
+      return false;
     }
   }
   if (onPortfolio) {
     void refreshPortfolio();
-    document.getElementById("refresh-robinhood-portfolio").addEventListener("click",()=>void refreshPortfolio());
     addEventListener("pageshow",event=>{ if (event.persisted) void refreshPortfolio(); });
   }
   const snapshotPanel = document.getElementById("robinhood-snapshot-panel");
@@ -114,6 +114,7 @@ if (config?.accountMode) {
       snapshotStatus.textContent = snapshot ? "" : "Upload the JSON export from the original Robinhood Portfolio page.";
     } catch (error) {
       if (request === snapshotRequest) snapshotStatus.textContent = error.message;
+      return false;
     }
   }
   if (onPortfolio) {
@@ -129,7 +130,7 @@ if (config?.accountMode) {
       setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
     void getSnapshot();
-    document.getElementById("refresh-robinhood-portfolio").addEventListener("click",()=>void getSnapshot());
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(getSnapshot(),refreshPortfolio());});
     addEventListener("pageshow",event=>{
       if (event.persisted) {
         showSnapshot(null);
@@ -193,6 +194,7 @@ if (config?.accountMode) {
       scheduleButton.hidden = false;
     } catch (error) {
       scheduleStatus.textContent = error.message;
+      return false;
     } finally {
       scheduleButton.disabled = false;
     }
@@ -200,7 +202,6 @@ if (config?.accountMode) {
   if (onPaperScreen) {
     void updateSchedule();
     scheduleButton.addEventListener("click",()=>void updateSchedule(scheduled ? "DELETE" : "PUT"));
-    document.getElementById("refresh-activity").addEventListener("click",()=>void updateSchedule());
   }
   runButton.addEventListener("click",async()=>{
     runButton.disabled = true;
@@ -278,11 +279,12 @@ if (config?.accountMode) {
       if (version !== activityVersion) return;
       liveStatus.textContent = "Alpaca Paper activity could not be refreshed.";
       livePaper.hidden = false;
+      return false;
     }
   }
   if (onPaperScreen) {
     void refreshActivity();
-    document.getElementById("refresh-activity").addEventListener("click",()=>void refreshActivity());
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(refreshActivity(),updateSchedule());});
     addEventListener("pageshow", event => { if (event.persisted) void refreshActivity(); });
   }
   function renderAccount(data) {

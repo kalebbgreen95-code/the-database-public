@@ -1208,9 +1208,10 @@ function renderCryptoRecovery(rows) {
 }
 
 function renderCryptoMarket(data) {
-  const { coins, checkedAt, unavailable } = data.cryptoMarket ?? {};
+  const { coins, checkedAt, unavailable, source, partial } = data.cryptoMarket ?? {};
   $("crypto-market-status").textContent = coins?.length
-    ? (unavailable ? "Last available data · " : "Checked ") + date(checkedAt) + " ET"
+    ? (source ?? "Simulated snapshot") + " · " + (unavailable ? "Last available data · " : "Checked ") +
+      date(checkedAt) + " ET" + (partial ? " · Some quotes unavailable" : "")
     : unavailable ? "Crypto market data is temporarily unavailable." : "Loading crypto market data…";
   $("crypto-market-list").replaceChildren(...(coins ?? []).map(coin => {
     const item = el("li", "");
@@ -1467,6 +1468,8 @@ async function loadBenzinga() {
   } catch {
     if (benzingaRequest !== request) return;
     benzingaStatus = "Benzinga headlines could not be loaded. Use Refresh News to retry.";
+    renderNews();
+    return false;
   }
   renderNews();
 }
@@ -1608,9 +1611,11 @@ async function loadChecklistBuys(ai = false) {
   }
 }
 function renderCryptoBuys(data) {
-  const signals = data.market.filter(row => row.signals.cryptoDaily)
+  const signals = (data.liveCryptoSignals ?? data.market).filter(row => row.signals.cryptoDaily)
     .sort((a, b) => b.signals.cryptoDaily.score - a.signals.cryptoDaily.score);
-  $("crypto-buy-status").textContent = signals.length ? "" : "Waiting for completed daily signals.";
+  $("crypto-buy-status").textContent = signals.length
+    ? data.liveCryptoSignals ? "Coinbase Exchange · Completed daily candles" : "Simulated signals"
+    : "Waiting for completed daily signals.";
   $("crypto-buy-list").replaceChildren(...signals.map(row => {
     const item = el("li", "");
     const signal = row.signals.cryptoDaily;
@@ -1724,8 +1729,14 @@ function setConnection(ok) {
 
 let latestFeeds;
 let publicStatus;
+const refreshCacheKey = "database-public-refresh";
+try {
+  const cached = JSON.parse(sessionStorage.getItem(refreshCacheKey));
+  if (cached?.version === document.querySelector('meta[name="app-version"]').content &&
+      Date.now()-Date.parse(cached.checkedAt)<10*60000) latestFeeds = cached;
+} catch {}
 async function refreshPublic() {
-  const response = await fetch(new URL("api/public-update",appRoot),{cache:"no-cache",signal:AbortSignal.timeout(20000)});
+  const response = await fetch(new URL("api/public-update",appRoot),{method:"POST",cache:"no-store",signal:AbortSignal.timeout(24000)});
   if (!response.ok) throw Error("The public feed check failed.");
   const updated = await response.json();
   if (updated.version !== document.querySelector('meta[name="app-version"]').content) {
@@ -1733,6 +1744,7 @@ async function refreshPublic() {
     return false;
   }
   latestFeeds = updated;
+  try { sessionStorage.setItem(refreshCacheKey,JSON.stringify(updated)); } catch {}
   return true;
 }
 
@@ -1742,6 +1754,16 @@ async function refreshDashboard(refresh = false) {
     if (!response.ok) throw Error("Snapshot unavailable");
     const data = await response.json();
     if (latestFeeds) {
+      const liveCrypto = latestFeeds.cryptoMarket;
+      if (liveCrypto?.coins.length) {
+        data.cryptoMarket = liveCrypto;
+        data.liveCryptoSignals = liveCrypto.coins.map(coin=>({
+          symbol:coin.symbol+"/USD",price:coin.price,time:Date.parse(liveCrypto.checkedAt),
+          priceSource:liveCrypto.source,fresh:true,signals:{cryptoDaily:coin.signal},
+        }));
+      } else if (liveCrypto) {
+        data.cryptoMarket = {...data.cryptoMarket,unavailable:true};
+      }
       if (latestFeeds.treasury) data.treasury = latestFeeds.treasury;
       const refreshed = new Set(latestFeeds.sources.filter(feed=>feed.available).map(feed=>feed.source));
       data.news = [...latestFeeds.news,...data.news.filter(row=>!refreshed.has(row.source))]
@@ -1792,6 +1814,15 @@ if (page === "usage") {
   }
 }
 const updateButton = $("update-app");
+async function refreshAccountSection() {
+  const jobs = [];
+  document.dispatchEvent(new CustomEvent("refresh-account-section",{detail:jobs}));
+  const results = await Promise.allSettled(jobs);
+  return results.some(result=>result.status === "rejected" || result.value === false);
+}
+function unavailableFeeds() {
+  return (latestFeeds?.sources ?? []).filter(feed=>!feed.available).map(feed=>feed.source);
+}
 updateButton.addEventListener("click",async()=>{
   updateButton.disabled = true;
   updateButton.setAttribute("aria-busy","true");
@@ -1800,13 +1831,14 @@ updateButton.addEventListener("click",async()=>{
   clearTimeout(publicStatus);
   status.textContent = "Checking for updates…";
   try {
-    const [refresh] = await Promise.all([refreshPublic(),page === "news" ? loadBenzinga() : undefined]);
+    const [refresh, benzingaResult, accountFailed] = await Promise.all([refreshPublic(),page === "news" ? loadBenzinga() : undefined,refreshAccountSection()]);
     if (!refresh) return;
-    if (!await refreshDashboard(true)) throw Error("Dashboard refresh failed.");
+    if (!await refreshDashboard()) throw Error("Dashboard refresh failed.");
     if (page === "asset") await loadAssetDetails();
     if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
     const refreshed = status.textContent;
-    status.textContent += latestFeeds.sources.some(feed=>!feed.available) ? " · Some feeds unavailable" : " · Refreshed";
+    status.textContent += unavailableFeeds().length || latestFeeds.cryptoMarket?.partial || accountFailed || benzingaResult === false
+      ? " · Some data unavailable" : " · Refreshed";
     publicStatus = setTimeout(()=>{status.textContent=refreshed;},3000);
   } catch {
     status.textContent = previous + " · Update couldn’t be completed";
@@ -1829,12 +1861,37 @@ if (refreshButton) {
         showRefreshed(status);
         return;
       }
-      if (page === "news") {
-        const [refresh] = await Promise.all([refreshPublic(),loadBenzinga()]);
-        if (!refresh) return;
+      const liveCrypto = page === "crypto" || (page === "opportunities" && $("buy-asset-class").value === "crypto");
+      const accountFailed = await refreshAccountSection();
+      let benzingaResult;
+      if (page === "news" || liveCrypto) {
+        const [publicResult,newsResult] = await Promise.all([refreshPublic(),page === "news" ? loadBenzinga() : undefined]);
+        if (!publicResult) return;
+        benzingaResult = newsResult;
       }
-      if (!await refreshDashboard(true)) throw Error("Snapshot unavailable");
+      if (!await refreshDashboard(!liveCrypto && page !== "news")) throw Error("Snapshot unavailable");
       if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
+      if (accountFailed) {
+        status.textContent = "Some account data couldn’t be refreshed.";
+        return;
+      }
+      if (liveCrypto && latestFeeds.cryptoMarket?.partial) {
+        status.textContent = latestFeeds.cryptoMarket.coins.length ? "Some crypto quotes couldn’t be refreshed." : "Crypto market data couldn’t be refreshed.";
+        return;
+      }
+      if (page === "news") {
+        const missing = unavailableFeeds().filter(source=>source !== "U.S. Treasury");
+        if (benzingaResult === false) missing.push("Benzinga");
+        if (missing.length) {
+          status.textContent = "Unavailable news sources · " + missing.join(", ");
+          return;
+        }
+      }
+      if (page === "robinhood-portfolio" || page === "notifications" || page === "ai-watchlist" || (page === "opportunities" && !liveCrypto)) {
+        status.textContent = page === "robinhood-portfolio" ? "Saved snapshot reloaded where available. Import a new file for new Robinhood holdings."
+          : page === "notifications" ? "Inbox reloaded." : "Screen recalculated from the current demo data.";
+        return;
+      }
       showRefreshed(status);
     } catch {
       status.textContent = "Couldn’t reload this snapshot.";

@@ -243,6 +243,11 @@ const selectedPage = page === "asset" ? "" : "/" + page;
 pageSelect.value = selectedPage;
 window.addEventListener("pageshow", () => { pageSelect.value = selectedPage; });
 pageSelect.addEventListener("change", () => {
+  if (pageSelect.value === "/account") {
+    pageSelect.value = selectedPage;
+    pageSelect.dispatchEvent(new Event("open-account"));
+    return;
+  }
   location.assign(navigationTarget(new URL(publicRoute(pageSelect.value), appRoot)));
 });
 $("overview").hidden = Boolean(page);
@@ -1642,7 +1647,7 @@ async function openPushDetail() {
 function setConnection(ok) {
   const indicator = $("connection-status");
   indicator.className = ok ? "connected" : "";
-  indicator.textContent = ok ? "Public demo" : "Snapshot unavailable";
+  indicator.textContent = ok ? "Connected" : "Disconnected";
 }
 
 async function refreshDashboard(refresh = false) {

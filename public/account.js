@@ -2,7 +2,7 @@ const config = await fetch("./account-api/config", {cache:"no-store"}).then(resp
   response.ok ? response.json() : null).catch(() => null);
 
 if (config?.accountMode) {
-  const open = document.getElementById("account-button");
+  const pagePicker = document.getElementById("dashboard-page");
   const dialog = document.getElementById("account-dialog");
   const status = document.getElementById("account-status");
   const signIn = document.getElementById("account-sign-in");
@@ -136,11 +136,13 @@ if (config?.accountMode) {
     url.search = params.toString();
     history.replaceState(history.state,"",url);
   }
-  open.hidden = false;
-  open.addEventListener("click",()=> {
+  pagePicker.add(new Option("Account", "/account"));
+  function openAccount() {
     if (!dialog.open) dialog.showModal();
     void run(update);
-  });
+  }
+  pagePicker.addEventListener("open-account",openAccount);
+  dialog.addEventListener("close",()=>pagePicker.focus());
   document.getElementById("account-close").addEventListener("click",()=>dialog.close());
   signIn.addEventListener("click",()=>void run(async()=>{
     const response = await call("sign-in","POST");
@@ -178,6 +180,6 @@ if (config?.accountMode) {
   }));
   if (result === "ready" || result === "failed") {
     if (result === "failed") status.textContent = "Sign-in could not be completed.";
-    open.click();
+    openAccount();
   }
 }

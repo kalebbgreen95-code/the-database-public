@@ -46,12 +46,22 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   let handleAuth;
   if (process.env.DEMO_ACCOUNT_ORIGIN) {
     const { createTenantService, openConnectionStore, createHostedConnectionStore } = await import("./lib/tenant-service.mjs");
+    const env = Object.fromEntries(Object.entries(process.env)
+      .filter(([name]) => name.startsWith("DEMO_"))
+      .map(([name, value]) => [name, value.trim()]));
     const { DEMO_ACCOUNT_ORIGIN, DEMO_ACCOUNT_DB, DEMO_ACCOUNT_ENCRYPTION_KEY,
-      DEMO_AUTH_URL, DEMO_AUTH_PUBLISHABLE_KEY, DEMO_SUPABASE_SECRET_KEY } = process.env;
-    if ((!DEMO_ACCOUNT_DB && !DEMO_SUPABASE_SECRET_KEY) || !DEMO_AUTH_URL || !DEMO_AUTH_PUBLISHABLE_KEY ||
-        !/^[a-f0-9]{64}$/i.test(DEMO_ACCOUNT_ENCRYPTION_KEY ?? "")) {
-      throw Error("Account mode requires its own auth project, persistent database and 32-byte encryption key.");
+      DEMO_AUTH_URL, DEMO_AUTH_PUBLISHABLE_KEY, DEMO_SUPABASE_SECRET_KEY } = env;
+    const issues = [];
+    if (!DEMO_AUTH_URL) issues.push("DEMO_AUTH_URL is missing");
+    if (!DEMO_AUTH_PUBLISHABLE_KEY) issues.push("DEMO_AUTH_PUBLISHABLE_KEY is missing");
+    if (!DEMO_ACCOUNT_DB && !DEMO_SUPABASE_SECRET_KEY) issues.push("DEMO_SUPABASE_SECRET_KEY is missing (required on Render)");
+    if (DEMO_SUPABASE_SECRET_KEY && !/^sb_secret_[A-Za-z0-9_-]+$/.test(DEMO_SUPABASE_SECRET_KEY)) {
+      issues.push("DEMO_SUPABASE_SECRET_KEY must be a Supabase key beginning with sb_secret_");
     }
+    if (!/^[a-f0-9]{64}$/i.test(DEMO_ACCOUNT_ENCRYPTION_KEY ?? "")) {
+      issues.push("DEMO_ACCOUNT_ENCRYPTION_KEY must have exactly 64 hexadecimal characters");
+    }
+    if (issues.length) throw Error("Invalid account settings: " + issues.join("; "));
     const { createTenantAuth } = await import("./lib/tenant-auth.mjs");
     const encryptionKey = Buffer.from(DEMO_ACCOUNT_ENCRYPTION_KEY,"hex");
     const store = DEMO_SUPABASE_SECRET_KEY ? createHostedConnectionStore({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey}) : openConnectionStore(DEMO_ACCOUNT_DB,encryptionKey);

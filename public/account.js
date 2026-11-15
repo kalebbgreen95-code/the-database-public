@@ -44,11 +44,12 @@ if (config?.accountMode) {
       return item;
     }));
     document.getElementById("render-usage-summary").textContent = bandwidth
-      ? bandwidth.usedMB + " MB of " + bandwidth.includedGB + " GB used · " + bandwidth.month +
-        " workspace total · Last checked " + et(bandwidth.checkedAt)
+      ? bandwidth.usedMB + (bandwidth.scope === "service" ? " MB · The Database service" :
+        " MB of " + bandwidth.includedGB + " GB used · Workspace total") + " · " + bandwidth.month +
+        " · Last checked " + et(bandwidth.checkedAt)
       : "No Render bandwidth snapshot.";
-    renderMeter.hidden = !bandwidth;
-    if (bandwidth) {
+    renderMeter.hidden = !bandwidth || bandwidth.scope === "service";
+    if (bandwidth && bandwidth.scope !== "service") {
       renderMeter.max = bandwidth.includedGB*1000;
       renderMeter.value = bandwidth.usedMB;
     }
@@ -69,7 +70,8 @@ if (config?.accountMode) {
       if (!response.ok) throw Error(result.error ?? "Usage data unavailable.");
       showUsage(result.snapshot);
       usageAccount.hidden = true;
-      usageStatus.textContent = method === "POST" ? (result.updated ? "Usage updated." : "Sources haven’t published a newer snapshot.") : "";
+      usageStatus.textContent = method === "POST" ? [result.updated ? "Usage updated." : "",
+        ...(result.missing ?? [])].filter(Boolean).join(" · ") || "Usage is current." : "";
     } catch (error) {
       if (request === usageRequest) usageStatus.textContent = error.message;
       return false;

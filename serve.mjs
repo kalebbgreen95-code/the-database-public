@@ -144,20 +144,17 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey});
     const usageStore = DEMO_SUPABASE_SECRET_KEY && createHostedSnapshotStore({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,kind:"usage"});
-    let usageRelay;
-    if (env.USAGE_RELAY_URL && env.USAGE_RELAY_TOKEN && env.USAGE_OWNER_ID) {
-      const url = new URL(env.USAGE_RELAY_URL);
-      if (url.protocol !== "https:" || url.username || url.password) throw Error("Usage relay requires an HTTPS URL.");
-      usageRelay = {url,token:env.USAGE_RELAY_TOKEN,owner:env.USAGE_OWNER_ID};
-    }
+    const usageSources = usageStore && createUsageSources({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,
+      renderKey:env.USAGE_RENDER_API_KEY,renderServiceId:env.RENDER_SERVICE_ID || env.USAGE_RENDER_SERVICE_ID});
     const browserPush = DEMO_SUPABASE_SECRET_KEY && createBrowserPush({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});
     if (DEMO_SUPABASE_SECRET_KEY) paperSchedule = createPaperSchedule({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,store,browserPush});
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,
-      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore,usageRelay});
+      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore,usageSources});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});
   }
   const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth,paperSchedule));
   server.listen(Number(process.env.PORT ?? 4173),process.env.HOST || "127.0.0.1",()=>console.log("Preview: http://127.0.0.1:"+server.address().port));
 }
+import {createUsageSources} from "./lib/usage-sources.mjs";

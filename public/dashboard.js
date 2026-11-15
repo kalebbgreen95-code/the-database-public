@@ -1431,23 +1431,59 @@ function newsItem(n, short = false) {
   return li;
 }
 
+let benzingaRows = [];
+let benzingaStatus = "Loading Benzinga headlines…";
+let benzingaRequest;
+async function loadBenzinga() {
+  benzingaRequest?.abort();
+  const request = new AbortController();
+  benzingaRequest = request;
+  try {
+    const response = await fetch(new URL("account-api/market-news",appRoot),{
+      cache:"no-store",signal:AbortSignal.any([request.signal,AbortSignal.timeout(12000)]),
+    });
+    const data = await response.json();
+    if (benzingaRequest !== request) return;
+    if (response.status === 401 || data.connected === false) {
+      benzingaRows = [];
+      benzingaStatus = "Sign in and connect Alpaca Paper from Account to see Benzinga headlines.";
+    } else if (!response.ok) {
+      throw Error("News unavailable");
+    } else {
+      benzingaRows = data.rows.filter(row=>row.source === "Benzinga");
+      benzingaStatus = "No recent Benzinga headlines.";
+    }
+  } catch {
+    if (benzingaRequest !== request) return;
+    benzingaStatus = "Benzinga headlines could not be loaded. Use Refresh News to retry.";
+  }
+  renderNews();
+}
+if (page === "news") {
+  document.addEventListener("paper-connection-changed",()=>{
+    benzingaRows = [];
+    benzingaStatus = "Loading Benzinga headlines…";
+    renderNews();
+    void loadBenzinga();
+  });
+}
+
 function renderNews() {
   if (!current) return;
   const sourcePicker = $("news-source");
   const previous = sourcePicker.value;
   const sources = current.publicSources ?? [];
-  const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source),"SEC filings"]);
+  const labels = new Set([...sources.map(feed=>feed.source),...current.news.map(row=>row.source),"SEC filings","Benzinga"]);
   sourcePicker.replaceChildren(new Option("All sources",""),new Option("Government & Economy","government"),
     ...[...labels].filter(label=>label && label !== "U.S. Treasury").map(label=>new Option(label,label)));
   sourcePicker.value = previous === "government" || labels.has(previous) ? previous : "";
   const source = sourcePicker.value;
   $("news-coverage").textContent = sources.filter(feed=>feed.source !== "U.S. Treasury").map(feed=>
     feed.source + (feed.available ? "" : " (unavailable)")).join(" · ");
-  const today = easternDay.format(new Date(current.updatedAt));
   $("news-date").textContent = new Date(current.updatedAt).toLocaleDateString("en-US", {
     timeZone: timezone, dateStyle: "full",
   }) + " · Eastern time";
-  const daily = current.news;
+  const daily = benzingaRows.length ? [...current.news,...benzingaRows].sort((first,second)=>second.timestamp-first.timestamp) : current.news;
   const picks = source ? [] : topStories(daily);
   $("news-top-stories").hidden = Boolean(source);
   $("additional-headlines-title").textContent = source ? "Headlines" : "More headlines";
@@ -1456,7 +1492,7 @@ function renderNews() {
   const news = uniqueHeadlines(daily.filter(row => !source || (source === "government"
     ? row.governmentFeed || governmentRiskReason(row.headline) : source === row.source)), picks);
   $("headlines").replaceChildren(...(news.length ? news.map(row => newsItem(row))
-    : [el("li", source ? "No headlines from this source today" : "No additional headlines today")]));
+    : [el("li",source === "Benzinga" ? benzingaStatus : source ? "No headlines from this source today" : "No additional headlines today")]));
   if (source === "SEC filings" && !news.length) {
     const link = el("a","View SEC filings on EDGAR");
     link.href = "https://www.sec.gov/search-filings";
@@ -1727,6 +1763,7 @@ async function refreshDashboard(refresh = false) {
   }
 }
 if (page === "asset") void loadAssetDetails();
+if (page === "news") void loadBenzinga();
 void refreshDashboard();
 void openPushDetail();
 function showPageTransfer() {
@@ -1753,7 +1790,8 @@ updateButton.addEventListener("click",async()=>{
   clearTimeout(publicStatus);
   status.textContent = "Checking for updates…";
   try {
-    if (!await refreshPublic()) return;
+    const [refresh] = await Promise.all([refreshPublic(),page === "news" ? loadBenzinga() : undefined]);
+    if (!refresh) return;
     if (!await refreshDashboard(true)) throw Error("Dashboard refresh failed.");
     if (page === "asset") await loadAssetDetails();
     if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
@@ -1781,7 +1819,10 @@ if (refreshButton) {
         showRefreshed(status);
         return;
       }
-      if (page === "news" && !await refreshPublic()) return;
+      if (page === "news") {
+        const [refresh] = await Promise.all([refreshPublic(),loadBenzinga()]);
+        if (!refresh) return;
+      }
       if (!await refreshDashboard(true)) throw Error("Snapshot unavailable");
       if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
       showRefreshed(status);

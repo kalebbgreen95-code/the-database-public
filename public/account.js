@@ -263,18 +263,16 @@ if (config?.accountMode) {
   }
   pagePicker.addEventListener("open-account",openAccount);
   const assetSymbol = paramsForScreen.get("symbol") ?? "";
-  const newsPage = paramsForScreen.get("screen") === "news";
-  if (newsPage || assetSymbol) {
-    const button = document.getElementById(newsPage ? "market-live-news" : "asset-live-news");
+  if (assetSymbol) {
+    const button = document.getElementById("asset-live-news");
     const status = document.getElementById("live-news-status");
     const list = document.getElementById("live-news-list");
-    if (newsPage) document.getElementById("news-coverage").after(button,status,list);
     button.hidden = false;
     button.addEventListener("click",async()=>{
       button.disabled = true;
       status.textContent = "Loading Alpaca headlines…";
       try {
-        const response = await call("market-news?" + new URLSearchParams({symbol:newsPage ? "" : assetSymbol}));
+        const response = await call("market-news?" + new URLSearchParams({symbol:assetSymbol}));
         const data = await response.json();
         if (response.status === 401 || data.connected === false) {
           status.textContent = "Sign in and connect Alpaca Paper from Account to load headlines.";
@@ -361,6 +359,7 @@ if (config?.accountMode) {
     const response = await call("sign-out","POST");
     if (!response.ok) throw Error("Sign-out failed.");
     status.textContent = "Signed out.";
+    document.dispatchEvent(new Event("paper-connection-changed"));
     clearActivity();
     clearPortfolio();
     await update();
@@ -377,6 +376,7 @@ if (config?.accountMode) {
       void refreshActivity();
       void refreshPortfolio();
       status.textContent = "Alpaca Paper connected.";
+      document.dispatchEvent(new Event("paper-connection-changed"));
       renderAccount(data);
     });
   });
@@ -386,6 +386,7 @@ if (config?.accountMode) {
     clearActivity();
     clearPortfolio();
     status.textContent = "Alpaca Paper disconnected.";
+    document.dispatchEvent(new Event("paper-connection-changed"));
     renderAccount(await response.json());
   }));
   if (result === "ready" || result === "failed") {

@@ -19,14 +19,16 @@ test("a paper connection is accessible only to its authenticated owner", async (
           const id = token.endsWith("a") ? first : token.endsWith("b") ? second : null;
           return Response.json({id}, {status:id ? 200 : 401});
         }
+        if (url.pathname === "/v2/positions") return Response.json([{symbol:"SPY",qty:"1",market_value:"250",asset_id:"PRIVATE"}]);
+        if (url.pathname === "/v2/orders") return Response.json([{symbol:"SPY",side:"buy",status:"filled",filled_qty:"1",id:"PRIVATE"}]);
         assert.equal(url.href, "https://paper-api.alpaca.markets/v2/account");
         assert.equal(options.redirect, "error");
         assert.equal(options.headers["APCA-API-SECRET-KEY"], credentials.secret);
         return Response.json({account_number:"PRIVATE", status:"ACTIVE", equity:"5000", cash:"5000"});
       },
     });
-    const call = (method, suffix = "", requestOrigin = origin, data = credentials) =>
-      handler({path:"/account-api/alpaca-paper",method,readJson:async()=>data,
+    const call = (method, suffix = "", requestOrigin = origin, data = credentials, path = "/account-api/alpaca-paper") =>
+      handler({path,method,readJson:async()=>data,
         headers:new Headers({origin:requestOrigin,...(suffix ? {authorization:"Bearer "+ "x".repeat(20)+suffix} : {})})});
     assert.equal((await call("GET")).status, 401);
     assert.equal((await call("PUT","a","https://other.example")).status, 403);
@@ -34,6 +36,13 @@ test("a paper connection is accessible only to its authenticated owner", async (
       {connected:true,account:{status:"ACTIVE",equity:5000,cash:5000,buyingPower:null}});
     assert.equal((await call("GET","a")).data.connected, true);
     assert.deepEqual((await call("GET","b")).data,{connected:false});
+    const activity = suffix => call("GET",suffix,origin,credentials,"/account-api/paper-activity");
+    assert.equal((await activity("")).status,401);
+    assert.deepEqual((await activity("b")).data,{connected:false});
+    const ownActivity = (await activity("a")).data;
+    assert.equal(ownActivity.positions[0].symbol,"SPY");
+    assert.equal(ownActivity.orders[0].status,"filled");
+    assert.ok(!JSON.stringify(ownActivity).includes("PRIVATE"));
     await call("DELETE","b");
     assert.equal((await call("GET","a")).data.connected, true);
     await call("DELETE","a");

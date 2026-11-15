@@ -116,6 +116,13 @@
 <section id="activity" aria-labelledby="paper-title">
 <div class="section-heading"><h2 id="paper-title">Paper Trading · Simulation</h2><button id="refresh-activity" class="section-refresh" type="button" aria-label="Refresh Paper Trading" title="Refresh Paper Trading"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-activity" class="section-refresh-status" role="status"></p>
 <div id="activity-push-detail" class="push-detail" tabindex="-1" hidden></div>
+<details id="connected-paper" class="paper-panel" hidden open>
+  <summary>Connected Alpaca Paper account</summary>
+  <p id="connected-paper-status" role="status"></p>
+  <p id="connected-paper-equity"></p>
+  <h3>Open positions</h3><ul id="connected-paper-positions"></ul>
+  <h3>Recent orders</h3><ul id="connected-paper-orders"></ul>
+</details>
 <div class="paper-equity">
 <h3>Account equity</h3>
 <dl id="paper-score" class="paper-score"></dl>

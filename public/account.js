@@ -16,6 +16,58 @@ if (config?.accountMode) {
     method,cache:"no-store",credentials:"same-origin",
     ...(body ? {headers:{"Content-Type":"application/json"},body:JSON.stringify(body)} : {}),
   });
+  const livePaper = document.getElementById("connected-paper");
+  const liveStatus = document.getElementById("connected-paper-status");
+  const liveEquity = document.getElementById("connected-paper-equity");
+  const livePositions = document.getElementById("connected-paper-positions");
+  const liveOrders = document.getElementById("connected-paper-orders");
+  const paramsForScreen = new URLSearchParams(location.search);
+  const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
+  let activityVersion = 0;
+  function fillList(list, rows, empty) {
+    list.replaceChildren(...(rows.length ? rows : [empty]).map(text=>{
+      const item = document.createElement("li");
+      item.textContent = text;
+      return item;
+    }));
+  }
+  function clearActivity() {
+    activityVersion++;
+    livePaper.hidden = true;
+    liveEquity.textContent = "";
+    livePositions.replaceChildren();
+    liveOrders.replaceChildren();
+  }
+  async function refreshActivity() {
+    if (!onPaperScreen) return;
+    const version = ++activityVersion;
+    try {
+      const response = await call("paper-activity");
+      if (version !== activityVersion) return;
+      if (response.status === 401) return clearActivity();
+      if (!response.ok) throw Error("Alpaca Paper activity is temporarily unavailable.");
+      const data = await response.json();
+      if (version !== activityVersion) return;
+      if (!data.connected) return clearActivity();
+      livePaper.hidden = false;
+      liveStatus.textContent = "";
+      const amount = value => value != null && Number.isFinite(Number(value)) ? money.format(Number(value)) : "unavailable";
+      liveEquity.textContent = "Paper equity " + amount(data.account.equity) + " · Cash " + amount(data.account.cash);
+      fillList(livePositions,data.positions.map(row=>row.symbol + " · " + row.quantity + " · " + amount(row.marketValue)),"No open positions.");
+      fillList(liveOrders,data.orders.map(row=>[row.symbol,row.side,row.status,
+        Number(row.quantity)>0 ? row.quantity + " filled at " + amount(row.averagePrice) : "",
+        row.at ? new Date(row.at).toLocaleString() : ""].filter(Boolean).join(" · ")),"No recent orders.");
+    } catch {
+      if (version !== activityVersion) return;
+      liveStatus.textContent = "Alpaca Paper activity could not be refreshed.";
+      livePaper.hidden = false;
+    }
+  }
+  if (onPaperScreen) {
+    void refreshActivity();
+    document.getElementById("refresh-activity").addEventListener("click",()=>void refreshActivity());
+    addEventListener("pageshow", event => { if (event.persisted) void refreshActivity(); });
+  }
   function renderAccount(data) {
     balance.textContent = data.connected
       ? "Paper equity " + (data.account.equity == null ? "unavailable" : money.format(data.account.equity)) +
@@ -69,6 +121,7 @@ if (config?.accountMode) {
     const response = await call("sign-out","POST");
     if (!response.ok) throw Error("Sign-out failed.");
     status.textContent = "Signed out.";
+    clearActivity();
     await update();
   }));
   form.addEventListener("submit",event=>{
@@ -80,6 +133,7 @@ if (config?.accountMode) {
       const response = await call("alpaca-paper","PUT",{keyId,secret});
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? "The paper connection could not be saved.");
+      void refreshActivity();
       status.textContent = "Alpaca Paper connected.";
       renderAccount(data);
     });
@@ -87,6 +141,7 @@ if (config?.accountMode) {
   disconnect.addEventListener("click",()=>void run(async()=>{
     const response = await call("alpaca-paper","DELETE");
     if (!response.ok) throw Error("Could not remove the paper connection.");
+    clearActivity();
     status.textContent = "Alpaca Paper disconnected.";
     renderAccount(await response.json());
   }));

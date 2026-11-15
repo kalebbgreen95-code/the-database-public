@@ -202,10 +202,8 @@
 </details>
 <details class="paper-panel"><summary>Fill reconciliation</summary><p id="paper-fee-status"></p><ul id="paper-executions"></ul></details>
 </section>
-<section id="robinhood-portfolio" hidden><div class="section-heading"><h2>Portfolio</h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Portfolio" title="Refresh Portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p>
-<div id="alpaca-portfolio" hidden aria-labelledby="alpaca-portfolio-title"><h3 id="alpaca-portfolio-title">Alpaca Paper holdings</h3><p id="alpaca-portfolio-status" role="status"></p><ul id="alpaca-portfolio-positions" class="watchlist-rows"></ul></div>
-<div id="robinhood-snapshot-panel" hidden aria-labelledby="robinhood-snapshot-title">
-<h3 id="robinhood-snapshot-title"><a href="https://applink.robinhood.com/u/portfolio">Robinhood Portfolio</a></h3>
+<section id="robinhood-portfolio" hidden><div class="section-heading"><h2 id="robinhood-portfolio-title"><a href="https://applink.robinhood.com/u/portfolio">Robinhood Portfolio</a></h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Robinhood Portfolio" title="Refresh Robinhood Portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p>
+<div id="robinhood-snapshot-panel" hidden aria-labelledby="robinhood-portfolio-title">
 <p id="robinhood-snapshot-status" role="status"></p>
 <button id="robinhood-snapshot-account" type="button" hidden>Open Account</button>
 <form id="robinhood-snapshot-import" hidden>
@@ -222,7 +220,7 @@
 <h4>Stocks &amp; ETFs</h4><ul id="robinhood-stocks" class="watchlist-rows"></ul>
 </div>
 </div>
-<h3>Demo holdings</h3><p id="portfolio-imported" class="watchlist-caption"></p><p><strong id="portfolio-value">Holdings value · Unavailable</strong></p><p id="portfolio-return"></p><h3>Crypto</h3><ul id="portfolio-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="portfolio-stocks" class="watchlist-rows"></ul></section>
+</section>
 <section id="robinhood"><h2>Watchlist</h2><p id="imported"></p><p class="watchlist-caption">Charts show up to 20 daily closes</p><h3>Crypto</h3><ul id="watchlist-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="watchlist-stocks" class="watchlist-rows"></ul></section>
 <button id="scroll-to-top" type="button" aria-label="Scroll to top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
 <a id="back-to-overview" href="./" aria-label="Go back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></a><dialog id="account-dialog" aria-labelledby="account-title">

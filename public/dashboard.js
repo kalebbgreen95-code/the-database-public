@@ -1000,7 +1000,7 @@ function render(data) {
     (r.reason ? "\n" + r.reason : ""), "neutral"]), "No pending orders");
   list("closed", data.paper.trades.map(r => [r.symbol, ` · ${date(r.at)} · ${r.strategy} · ${percent(r.net)} estimated net` +
     (r.entryReason ? "\nEntry · " + r.entryReason : "") + (r.reason ? "\nExit · " + r.reason : "")]), "No completed trades");
-  if (page === "robinhood" || page === "robinhood-portfolio") renderRobinhood(data, page === "robinhood-portfolio");
+  if (page === "robinhood") renderRobinhood(data);
   renderNews();
   if (!page) renderOverview(data);
   if (page === "activity") renderPaperScorecard(data);

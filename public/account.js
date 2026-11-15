@@ -27,57 +27,7 @@ if (config?.accountMode) {
   const paramsForScreen = new URLSearchParams(location.search);
   const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
   const onPortfolio = paramsForScreen.get("screen") === "robinhood-portfolio" || location.hash === "#robinhood-portfolio";
-  const portfolio = document.getElementById("alpaca-portfolio");
-  const portfolioStatus = document.getElementById("alpaca-portfolio-status");
-  const portfolioPositions = document.getElementById("alpaca-portfolio-positions");
   const amount = value => value != null && Number.isFinite(Number(value)) ? money.format(Number(value)) : "unavailable";
-  let portfolioVersion = 0;
-  function clearPortfolio() {
-    portfolioVersion++;
-    portfolio.hidden = true;
-    portfolioStatus.textContent = "";
-    portfolioPositions.replaceChildren();
-  }
-  async function refreshPortfolio() {
-    if (!onPortfolio) return;
-    const request = ++portfolioVersion;
-    try {
-      const response = await call("paper-activity?view=positions");
-      if (request !== portfolioVersion) return;
-      if (response.status === 401) {
-        clearPortfolio();
-        return;
-      }
-      if (!response.ok) throw Error("Alpaca Paper holdings could not be refreshed.");
-      const data = await response.json();
-      if (request !== portfolioVersion) return;
-      if (!data.connected) return clearPortfolio();
-      portfolio.hidden = false;
-      portfolioStatus.textContent = "Paper equity " + amount(data.account.equity) + " · Cash " + amount(data.account.cash);
-      const rows = data.positions.map(row=>{
-        const item = document.createElement("li");
-        const symbol = row.assetClass === "crypto" ? row.symbol.replace(/(?<!\/)USD$/,"/USD") : row.symbol;
-        const link = document.createElement("a");
-        link.href = publicRoute("/asset?" + new URLSearchParams({symbol}));
-        link.textContent = symbol;
-        item.append(link," · " + row.quantity + " · " + amount(row.marketValue),
-          " · Unrealized P/L " + amount(row.unrealized));
-        return item;
-      });
-      portfolioPositions.replaceChildren(...rows);
-      if (!rows.length) fillList(portfolioPositions,[],"No open positions.");
-    } catch (error) {
-      if (request !== portfolioVersion) return;
-      portfolio.hidden = false;
-      portfolioStatus.textContent = error.message;
-      portfolioPositions.replaceChildren();
-      return false;
-    }
-  }
-  if (onPortfolio) {
-    void refreshPortfolio();
-    addEventListener("pageshow",event=>{ if (event.persisted) void refreshPortfolio(); });
-  }
   const snapshotPanel = document.getElementById("robinhood-snapshot-panel");
   const snapshotForm = document.getElementById("robinhood-snapshot-import");
   const snapshotStatus = document.getElementById("robinhood-snapshot-status");
@@ -130,7 +80,7 @@ if (config?.accountMode) {
       setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
     void getSnapshot();
-    document.addEventListener("refresh-account-section",event=>{event.detail.push(getSnapshot(),refreshPortfolio());});
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(getSnapshot());});
     addEventListener("pageshow",event=>{
       if (event.persisted) {
         showSnapshot(null);
@@ -451,7 +401,6 @@ if (config?.accountMode) {
     if (onPortfolio) showSnapshotSignIn();
     document.dispatchEvent(new Event("paper-connection-changed"));
     clearActivity();
-    clearPortfolio();
     await update();
   }));
   form.addEventListener("submit",event=>{
@@ -464,7 +413,6 @@ if (config?.accountMode) {
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? "The paper connection could not be saved.");
       void refreshActivity();
-      void refreshPortfolio();
       status.textContent = "Alpaca Paper connected.";
       document.dispatchEvent(new Event("paper-connection-changed"));
       renderAccount(data);
@@ -474,7 +422,6 @@ if (config?.accountMode) {
     const response = await call("alpaca-paper","DELETE");
     if (!response.ok) throw Error("Could not remove the paper connection.");
     clearActivity();
-    clearPortfolio();
     status.textContent = "Alpaca Paper disconnected.";
     document.dispatchEvent(new Event("paper-connection-changed"));
     renderAccount(await response.json());

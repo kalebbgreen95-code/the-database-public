@@ -14,13 +14,14 @@
 <nav aria-label="Dashboard pages">
 <select id="dashboard-page" aria-label="Dashboard page">
 <option value="/search">Search</option>
-<option value="/robinhood-portfolio">Demo Portfolio</option><option value="/robinhood">Watchlist</option>
+<option value="/robinhood-portfolio">Portfolio</option><option value="/robinhood">Watchlist</option>
 <option value="/">Overview</option>
 <option value="/opportunities">Potential Buys</option>
 <option value="/ai-watchlist">AI Watchlist</option>
 <option value="/crypto">Crypto</option>
 <option value="/news">News</option>
 <option value="/activity">Paper Trading</option>
+<option value="/usage">Usage</option>
 <option value="/notifications">Notifications</option>
 </select>
 </nav>
@@ -120,6 +121,13 @@
 <div id="fund-metrics" hidden><h3>Fund breakdown</h3><dl id="asset-fund" class="asset-metrics"></dl></div><div id="company-metrics" hidden><h3>Company fundamentals</h3><dl id="asset-fundamentals" class="asset-metrics"></dl><a id="asset-filings" hidden>SEC filings</a><h3>Valuation ratios</h3><dl id="asset-valuation" class="asset-metrics"></dl><h3>Stock checklist</h3><dl id="asset-checklist" class="asset-metrics"></dl></div>
 <h3>Related news and filings</h3><ul id="asset-articles"></ul>
 </section>
+<section id="usage" aria-labelledby="usage-title" hidden>
+<div class="section-heading"><h2 id="usage-title">Usage</h2><button id="refresh-usage" class="section-refresh" type="button" aria-label="Refresh Usage" title="Refresh Usage"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div>
+<p id="refresh-status-usage" class="section-refresh-status" role="status"></p>
+<p id="page-transfer" role="status"></p>
+<p><a href="https://dashboard.render.com/">View Render usage</a> · Monthly workspace totals are under Billing.</p>
+<p><a href="https://chatgpt.com/settings/usage?tab=overview">View Live Usage</a></p>
+</section>
 <section id="notifications"><div class="notification-heading"><h2>Notifications <span id="notice-count"></span></h2><button id="clear-notifications" type="button" disabled>Clear All</button><button id="refresh-notifications" class="section-refresh" type="button" aria-label="Refresh Notifications" title="Refresh Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-notifications" class="section-refresh-status" role="status"></p>
 <p id="phone-status"></p><button id="enable-push" type="button">Enable notifications</button>
 <button id="test-notification" type="button" hidden>Send test notification</button><p id="push-result" role="status"></p>
@@ -195,7 +203,9 @@
 </details>
 <details class="paper-panel"><summary>Fill reconciliation</summary><p id="paper-fee-status"></p><ul id="paper-executions"></ul></details>
 </section>
-<section id="robinhood-portfolio" hidden><div class="section-heading"><h2>Demo Portfolio</h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Robinhood portfolio" title="Refresh Robinhood portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p><p id="portfolio-imported" class="watchlist-caption"></p><p><strong id="portfolio-value">Holdings value · Unavailable</strong></p><p id="portfolio-return"></p><h3>Crypto</h3><ul id="portfolio-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="portfolio-stocks" class="watchlist-rows"></ul></section>
+<section id="robinhood-portfolio" hidden><div class="section-heading"><h2>Portfolio</h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Portfolio" title="Refresh Portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p>
+<div id="alpaca-portfolio" hidden aria-labelledby="alpaca-portfolio-title"><h3 id="alpaca-portfolio-title">Alpaca Paper holdings</h3><p id="alpaca-portfolio-status" role="status"></p><ul id="alpaca-portfolio-positions" class="watchlist-rows"></ul></div>
+<h3>Demo holdings</h3><p id="portfolio-imported" class="watchlist-caption"></p><p><strong id="portfolio-value">Holdings value · Unavailable</strong></p><p id="portfolio-return"></p><h3>Crypto</h3><ul id="portfolio-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="portfolio-stocks" class="watchlist-rows"></ul></section>
 <section id="robinhood"><h2>Watchlist</h2><p id="imported"></p><p class="watchlist-caption">Charts show up to 20 daily closes</p><h3>Crypto</h3><ul id="watchlist-crypto" class="watchlist-rows"></ul><h3>Stocks &amp; ETFs</h3><ul id="watchlist-stocks" class="watchlist-rows"></ul></section>
 <button id="scroll-to-top" type="button" aria-label="Scroll to top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
 <a id="back-to-overview" href="./" aria-label="Go back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></a><dialog id="account-dialog" aria-labelledby="account-title">

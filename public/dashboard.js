@@ -12,7 +12,7 @@ const timezone = "America/New_York";
 const date = value => value ? new Date(value).toLocaleString("en-US", { timeZone: timezone }) : "—";
 const easternDay = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, dateStyle: "short" });
 let current;
-const pages = ["ai-watchlist", "search", "asset", "crypto", "news", "opportunities", "activity", "robinhood", "robinhood-portfolio", "notifications"];
+const pages = ["ai-watchlist", "search", "asset", "crypto", "news", "opportunities", "activity", "robinhood", "robinhood-portfolio", "usage", "notifications"];
 const requested = screen(currentUrl) || location.hash.slice(1);
 const page = pages.includes(requested) ? requested : "";
 history.scrollRestoration = "manual";
@@ -1729,6 +1729,21 @@ async function refreshDashboard(refresh = false) {
 if (page === "asset") void loadAssetDetails();
 void refreshDashboard();
 void openPushDetail();
+function showPageTransfer() {
+  const entries = [...performance.getEntriesByType("navigation"),...performance.getEntriesByType("resource")];
+  const measured = entries.filter(entry=>Number.isFinite(entry.transferSize) &&
+    new URL(entry.name,location.href).origin === location.origin);
+  const total = measured.reduce((bytes,entry)=>bytes+entry.transferSize,0);
+  $("page-transfer").textContent = measured.length
+    ? new Intl.NumberFormat("en-US",{maximumFractionDigits:1}).format(total/1024) + " KiB transferred for this page."
+    : "Page transfer size is unavailable.";
+}
+if (page === "usage") {
+  showPageTransfer();
+  if (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes?.includes("resource")) {
+    new PerformanceObserver(showPageTransfer).observe({type:"resource"});
+  }
+}
 const updateButton = $("update-app");
 updateButton.addEventListener("click",async()=>{
   updateButton.disabled = true;
@@ -1761,6 +1776,11 @@ if (refreshButton) {
     refreshButton.setAttribute("aria-busy", "true");
     status.textContent = "Refreshing…";
     try {
+      if (page === "usage") {
+        showPageTransfer();
+        showRefreshed(status);
+        return;
+      }
       if (page === "news" && !await refreshPublic()) return;
       if (!await refreshDashboard(true)) throw Error("Snapshot unavailable");
       if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");

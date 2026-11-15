@@ -2,7 +2,6 @@ import { stockChecklist } from "./stock-checklist.mjs";
 import { criticalNewsReason, governmentRiskReason, groupNewsEvents, isMajorMarketNews, newsPercentageTone, related, topStories, uniqueHeadlines } from "./briefing.mjs";
 const $ = id => document.getElementById(id);
 import { readDemo, publicRoute } from "./public-data.js";
-import { checkDeviceAlerts } from "./device-alerts.js";
 const appRoot = new URL("./", import.meta.url);
 const currentUrl = new URL(location.href);
 const screen = url => url.searchParams.get("screen") ?? "";
@@ -889,7 +888,6 @@ function syncClearedNotifications() {
 }
 
 function renderNotifications(notifications) {
-  checkDeviceAlerts(notifications);
   const visible = notifications.filter(notice => !clearedNotificationIds.has(notice.id));
   updateUnreadNotifications(visible);
   $("clear-notifications").disabled = !visible.length;

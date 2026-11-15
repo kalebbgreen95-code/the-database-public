@@ -1,60 +1,79 @@
-const enabledKey = "database-device-alerts";
-const seenKey = "database-device-alerts-seen";
 const enable = document.getElementById("enable-push");
 const test = document.getElementById("test-notification");
 const status = document.getElementById("phone-status");
 const result = document.getElementById("push-result");
-const supported = isSecureContext && "Notification" in window && "serviceWorker" in navigator;
-const worker = new URL("./notification-worker.js", import.meta.url);
-let registration;
-let enabled = saved(enabledKey) === "true";
-let known = new Set();
-try { known = new Set(JSON.parse(saved(seenKey) || "[]")); } catch {}
+const supported = isSecureContext && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+const worker = new URL("./notification-worker.js",import.meta.url);
+const endpoint = new URL("./account-api/browser-push",import.meta.url);
+let subscription;
 
-function saved(key) {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
-
-function save(key, value) {
-  try { localStorage.setItem(key, value); } catch {}
+async function request(method,device) {
+  const response = await fetch(endpoint,{method,cache:"no-store",signal:AbortSignal.timeout(18000),
+    ...(device ? {headers:{"Content-Type":"application/json"},body:JSON.stringify({endpoint:device.endpoint})} : {})});
+  const data = await response.json();
+  if (response.status === 401) throw Error("Sign in from Account to enable push notifications.");
+  if (!response.ok) throw Error(data.error ?? "Browser push is unavailable.");
+  return data;
 }
 
 function renderState() {
   const permission = supported ? Notification.permission : "unsupported";
   enable.disabled = permission === "unsupported";
-  const active = enabled && permission === "granted";
-  enable.textContent = active ? "Disable notifications" : "Enable notifications";
+  const active = Boolean(subscription) && permission === "granted";
+  enable.textContent = active ? "Disable push notifications" : "Enable push notifications";
   test.hidden = !active;
-  status.textContent = permission === "unsupported" ? "Device notifications are unavailable in this browser."
-    : permission === "denied" ? "Notifications are blocked. Allow them in this browser’s site settings."
-    : active ? "Device notifications are enabled. New alerts appear when the dashboard checks for updates."
-    : "Enable device notifications for new alerts while the dashboard is open.";
+  status.textContent = permission === "unsupported" ? "This browser does not support push notifications."
+    : permission === "denied" ? "Notifications are blocked in this browser’s site settings."
+    : active ? "This device can receive paper order alerts while the dashboard is closed."
+    : "Sign in to enable paper order alerts on this device.";
 }
 
-async function showNotification(title, body, tag) {
-  registration ??= navigator.serviceWorker.register(worker).catch(error=>{
-    registration = undefined;
-    throw error;
-  });
-  await registration;
-  const ready = await navigator.serviceWorker.ready;
-  await ready.showNotification(title,{body,tag});
+async function existingSubscription() {
+  const registration = await navigator.serviceWorker.getRegistration(worker);
+  return registration?.pushManager.getSubscription();
+}
+
+export async function disableDevicePush() {
+  if (!supported) return;
+  const device = subscription ?? await existingSubscription();
+  if (!device) return;
+  try { await request("DELETE",device); }
+  finally {
+    await device.unsubscribe();
+    subscription = undefined;
+    renderState();
+  }
 }
 
 enable.addEventListener("click",async()=>{
   enable.disabled = true;
   result.textContent = "";
   try {
-    if (enabled && Notification.permission === "granted") {
-      enabled = false;
-    } else {
-      const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
-      enabled = permission === "granted";
-      if (permission === "default") result.textContent = "Notification permission wasn’t granted.";
+    if (subscription && Notification.permission === "granted") {
+      await disableDevicePush();
+      return;
     }
-    save(enabledKey,String(enabled));
-  } catch {
-    result.textContent = "Couldn’t change device notifications.";
+    const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+    if (permission !== "granted") {
+      result.textContent = "Notification permission wasn’t granted.";
+      return;
+    }
+    const {publicKey} = await request("GET");
+    await navigator.serviceWorker.register(worker);
+    const registration = await navigator.serviceWorker.ready;
+    const device = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:Uint8Array.from(atob(publicKey.replace(/-/g,"+").replace(/_/g,"/")),character=>character.charCodeAt(0)),
+    });
+    try {
+      await request("PUT",device);
+      subscription = device;
+    } catch (error) {
+      await device.unsubscribe();
+      throw error;
+    }
+  } catch (error) {
+    result.textContent = error.message || "Couldn’t enable push notifications.";
   } finally {
     renderState();
   }
@@ -63,32 +82,16 @@ enable.addEventListener("click",async()=>{
 test.addEventListener("click",async()=>{
   test.disabled = true;
   try {
-    await showNotification("The Database","Device notifications are working.","database-test");
-    result.textContent = "Test notification sent.";
-  } catch {
-    result.textContent = "Couldn’t display a test notification.";
+    await request("POST",subscription);
+    result.textContent = "The push service accepted your test notification.";
+  } catch (error) {
+    result.textContent = error.message || "Couldn’t send a test notification.";
   } finally {
     test.disabled = false;
   }
 });
 
-let firstCheck = saved(seenKey) === null;
-export function checkDeviceAlerts(notifications) {
-  try {
-    for (const id of JSON.parse(saved(seenKey) || "[]")) known.add(id);
-  } catch {}
-  const unseen = notifications.filter(row=>!known.has(row.id));
-  if (!firstCheck && supported && enabled && Notification.permission === "granted" && unseen.length) {
-    const newest = unseen[0];
-    void showNotification(newest.title,newest.body,"database-" + newest.id).catch(()=>{
-      result.textContent = "Couldn’t display the latest device notification.";
-    });
-  }
-  firstCheck = false;
-  for (const row of unseen) known.add(row.id);
-  known = new Set([...known].slice(-200));
-  save(seenKey,JSON.stringify([...known]));
-}
-
-window.addEventListener("focus",renderState);
 renderState();
+if (supported) {
+  void existingSubscription().then(device=>{subscription=device;renderState();}).catch(()=>{});
+}

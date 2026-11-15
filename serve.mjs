@@ -1,4 +1,5 @@
 import { publicFeedUpdate } from "./lib/economic-news.mjs";
+import { createBrowserPush } from "./lib/browser-push.mjs";
 import manifest from "./package.json" with { type: "json" };
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
@@ -123,8 +124,10 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
     const { createTenantAuth } = await import("./lib/tenant-auth.mjs");
     const encryptionKey = Buffer.from(DEMO_ACCOUNT_ENCRYPTION_KEY,"hex");
     const store = DEMO_SUPABASE_SECRET_KEY ? createHostedConnectionStore({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey}) : openConnectionStore(DEMO_ACCOUNT_DB,encryptionKey);
+    const browserPush = DEMO_SUPABASE_SECRET_KEY && createBrowserPush({projectUrl:DEMO_AUTH_URL,
+      serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,
-      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store});
+      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});
   }
   const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth));

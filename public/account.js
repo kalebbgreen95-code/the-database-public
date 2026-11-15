@@ -1,3 +1,5 @@
+import { disableDevicePush } from "./device-alerts.js?v=206";
+
 const config = await fetch("./account-api/config", {cache:"no-store"}).then(response =>
   response.ok ? response.json() : null).catch(() => null);
 
@@ -274,6 +276,7 @@ if (config?.accountMode) {
     location.assign(data.authorize);
   }));
   signOut.addEventListener("click",()=>void run(async()=>{
+    await disableDevicePush().catch(()=>{});
     const response = await call("sign-out","POST");
     if (!response.ok) throw Error("Sign-out failed.");
     status.textContent = "Signed out.";

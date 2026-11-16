@@ -334,7 +334,7 @@ if (config?.accountMode) {
     }));
   }
   function renderPaperOrders(orders) {
-    const columns = ["Symbol","Side","Source","Status","Filled quantity","Gross fill (USD)","Average fill","Time (ET)"];
+    const columns = ["Symbol","Side","Source","Status","Filled quantity","Gross fill (USD)","Average fill","Time (ET)","Reason"];
     if (!orders.length) {
       const row = liveOrders.insertRow();
       const cell = row.insertCell();
@@ -347,7 +347,8 @@ if (config?.accountMode) {
       const filled = Number(order.quantity)>0 && Number(order.averagePrice)>0;
       const values = [paperAssetLink(order.symbol),order.side,order.automated ? "Bot" : "Other",order.status,
         order.quantity??"—",filled ? amount(Number(order.quantity)*Number(order.averagePrice)) : "—",
-        filled ? amount(order.averagePrice) : "—",order.at ? et(order.at) : "—"];
+        filled ? amount(order.averagePrice) : "—",order.at ? et(order.at) : "—",
+        order.reason || "—"];
       values.forEach((value,index)=>{
         const cell = row.insertCell();
         const label = document.createElement("span");

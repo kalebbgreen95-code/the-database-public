@@ -158,7 +158,7 @@
   <p id="connected-paper-history"></p>
   <canvas id="connected-paper-chart" class="paper-account-chart" width="640" height="160" role="img" aria-label="Alpaca Paper account equity history" hidden></canvas>
 </div>
-<details class="paper-panel" open>
+<details class="paper-panel">
   <summary>Strategy decisions</summary>
   <p id="paper-schedule-status" role="status"></p>
   <button id="paper-preview-check" type="button">Check signals</button>
@@ -169,17 +169,19 @@
   <ul id="paper-preview-rows"></ul>
   <p>Crypto reversal exits require a 24-hour hold and two completed five-minute reversal candles. A 10% stop or 20% target can trigger an earlier exit.</p>
 </details>
-<details class="paper-panel" open>
+<details class="paper-panel">
   <summary>Orders &amp; positions</summary>
   <h3>Pending orders</h3><ul id="connected-paper-pending"></ul>
   <h3>Open positions</h3><ul id="connected-paper-positions"></ul>
   <h3>Alpaca order history</h3><p id="connected-paper-checked"></p>
   <div class="scroll"><table aria-label="Alpaca order history">
-    <thead><tr><th scope="col">Symbol</th><th scope="col">Side</th><th scope="col">Source</th><th scope="col">Status</th><th scope="col">Filled quantity</th><th scope="col">Gross fill (USD)</th><th scope="col">Average fill</th><th scope="col">Time (ET)</th></tr></thead>
+    <thead><tr><th scope="col">Symbol</th><th scope="col">Side</th><th scope="col">Source</th><th scope="col">Status</th><th scope="col">Filled quantity</th><th scope="col">Gross fill (USD)</th><th scope="col">Average fill</th><th scope="col">Time (ET)</th><th scope="col">Reason</th></tr></thead>
     <tbody id="connected-paper-orders"></tbody>
   </table></div>
 </details>
 </div>
+<details class="paper-panel">
+<summary>Strategy performance</summary>
 <details class="paper-panel">
 <summary>Simulated strategy results</summary>
 <div class="paper-equity">
@@ -202,9 +204,7 @@
 <div class="scroll"><table role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Symbol</th><th role="columnheader" scope="col">Side</th><th role="columnheader" scope="col">Source</th><th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Filled quantity</th><th role="columnheader" scope="col">Gross fill (USD)</th><th role="columnheader" scope="col">Average fill</th><th role="columnheader" scope="col">Time (ET)</th><th role="columnheader" scope="col">Reason</th></tr></thead><tbody id="orders"></tbody></table></div>
 </details>
 </details>
-<details class="paper-panel">
-<summary>Strategy performance · simulated</summary>
-<h3>Completed paper trades by strategy</h3>
+<h3>Completed simulated trades by strategy</h3>
 <p>Results compound net returns per completed trade. Drawdown uses that same series.</p>
 <div class="scroll"><table role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Strategy</th><th role="columnheader" scope="col">Asset</th><th role="columnheader" scope="col">Closed</th><th role="columnheader" scope="col">Win rate</th><th role="columnheader" scope="col">Net return</th><th role="columnheader" scope="col">Drawdown</th></tr></thead><tbody id="results"></tbody></table></div>
 <h3>Recent closed trades</h3><ul id="closed"></ul>
@@ -221,15 +221,15 @@
 <h3>Intraday crypto outcomes by exit reason</h3><ul id="intraday-outcomes"></ul>
 </details>
 <details class="paper-panel">
-<summary>Historical strategy comparison · synthetic scenario</summary>
+<summary>Historical comparison</summary>
 <p>Simulated returns after costs. The full window covers 180 synthetic observations. The later window covers the last 90. Cash earns zero in this comparison.</p>
 <div class="scroll"><table role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Strategy</th><th role="columnheader" scope="col">Full return</th><th role="columnheader" scope="col">Max drawdown</th><th role="columnheader" scope="col">Later return</th><th role="columnheader" scope="col">Later return at 2× costs</th><th role="columnheader" scope="col">Avg. exposure</th><th role="columnheader" scope="col">Orders</th></tr></thead><tbody id="paper-benchmarks"></tbody></table></div>
 </details>
 <details class="paper-panel">
-<summary>Crypto paper universe comparison · simulated</summary>
+<summary>Crypto paper universe comparison</summary>
 <p id="paper-crypto-universe-status"></p><ul id="paper-crypto-universe"></ul>
 </details>
-<details class="paper-panel"><summary>Fill reconciliation · simulated</summary><p id="paper-fee-status"></p><ul id="paper-executions"></ul></details>
+<details class="paper-panel"><summary>Fill reconciliation</summary><p id="paper-fee-status"></p><ul id="paper-executions"></ul></details>
 </section>
 <section id="robinhood-portfolio" hidden><div class="section-heading"><h2 id="robinhood-portfolio-title"><a href="https://applink.robinhood.com/u/portfolio">Robinhood Portfolio</a></h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Robinhood Portfolio" title="Refresh Robinhood Portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p>
 <div id="robinhood-snapshot-panel" hidden aria-labelledby="robinhood-portfolio-title">

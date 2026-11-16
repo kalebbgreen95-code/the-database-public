@@ -903,7 +903,36 @@ function syncClearedNotifications() {
   } catch {}
 }
 
+let accountFillNotices;
+async function loadAccountFillNotices() {
+  const response = await fetch("./account-api/paper-activity?view=fills", {
+    cache:"no-store", signal:AbortSignal.timeout(12000),
+  });
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw Error("Alpaca fills unavailable");
+  const data = await response.json();
+  if (!data.connected) return null;
+  return data.orders.map(order => {
+    const id = "fill:alpaca-" + order.id;
+    return {id, order:{...order,id:"alpaca-"+order.id}, created:order.filledAt,
+      title:"Alpaca paper order filled · " + order.symbol,
+      body:order.side.toUpperCase()+" "+order.quantity+" at $"+order.price+" per unit",
+      target:publicRoute("/activity?" + new URLSearchParams({notice:id}))};
+  });
+}
+
+function displayedNotifications(notifications) {
+  return accountFillNotices == null ? notifications :
+    [...accountFillNotices,...notifications.filter(notice=>!notice.id.startsWith("fill:"))];
+}
+
+async function refreshFillNotifications() {
+  accountFillNotices = await loadAccountFillNotices();
+  if (current) renderNotifications(current.notifications);
+}
+
 function renderNotifications(notifications) {
+  notifications = displayedNotifications(notifications);
   const visible = notifications.filter(notice => !clearedNotificationIds.has(notice.id));
   updateUnreadNotifications(visible);
   $("clear-notifications").disabled = !visible.length;
@@ -933,7 +962,10 @@ function clearNotifications(ids) {
 syncReadNotifications();
 syncClearedNotifications();
 $("clear-notifications").addEventListener("click", () => {
-  if (current) clearNotifications(current.notifications.map(notice => notice.id));
+  if (current) clearNotifications(displayedNotifications(current.notifications).map(notice => notice.id));
+});
+if (page === "notifications") void refreshFillNotifications().catch(() => {
+  $("refresh-status-notifications").textContent = "Alpaca fills couldn’t be loaded.";
 });
 if (page === "notifications") notificationsLink.setAttribute("aria-current", "page");
 window.addEventListener("storage", async event => {
@@ -1695,12 +1727,12 @@ async function openPushDetail() {
   panel.hidden = false;
   panel.textContent = "Loading notification…";
   try {
-    const response = await readDemo("/api/notice?" + new URLSearchParams({id}), {
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw Error("Notification unavailable");
-    const notice = await response.json();
-    if (notice.id !== id) throw Error("Notification unavailable");
+    const notice = id.startsWith("fill:alpaca-")
+      ? (await loadAccountFillNotices())?.find(row=>row.id===id)
+      : await readDemo("/api/notice?" + new URLSearchParams({id}), {
+        signal: AbortSignal.timeout(15000),
+      }).then(response=>response.ok ? response.json() : null);
+    if (notice?.id !== id) throw Error("Notification unavailable");
     const body = el("div", "");
     if (id.startsWith("fill:") && notice.order?.id === id.slice("fill:".length)) {
       const order = notice.order;
@@ -1712,7 +1744,7 @@ async function openPushDetail() {
         ["Requested size", order.requested != null ? money(order.requested) : order.requestedQuantity ? order.requestedQuantity + " units" : null],
         [order.side === "sell" ? "Gross proceeds (USD)" : "Gross purchase (USD)", paperUsdAmount(order.quantity, order.price) ?? "—"],
         ["Request minus gross fill", order.unfilledDollars != null ? money(order.unfilledDollars) : null],
-        ["Modeled fee", order.feeUsd != null ? money(order.feeUsd) : "No fee linked to this order"],
+        ["Modeled fee", order.feeUsd != null ? money(order.feeUsd) : null],
         ["Average fill price", order.price ? money(Number(order.price)) : "—"],
         ["Filled at", order.filledAt ? date(order.filledAt) + " ET" : "—"],
         ["Reason", order.reason],
@@ -1910,7 +1942,7 @@ if (refreshButton) {
         return;
       }
       if (page === "notifications") {
-        if (current) renderNotifications(current.notifications);
+        await refreshFillNotifications();
         showRefreshed(status);
         return;
       }

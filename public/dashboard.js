@@ -1848,9 +1848,9 @@ if (page === "usage") {
   }
 }
 const updateButton = $("update-app");
-async function refreshAccountSection() {
+async function refreshAccountSection(full = false) {
   const jobs = [];
-  document.dispatchEvent(new CustomEvent("refresh-account-section",{detail:jobs}));
+  document.dispatchEvent(new CustomEvent(full ? "refresh-all-account-data" : "refresh-account-section",{detail:jobs}));
   const results = await Promise.allSettled(jobs);
   return results.some(result=>result.status === "rejected" || result.value === false);
 }
@@ -1865,9 +1865,18 @@ updateButton.addEventListener("click",async()=>{
   clearTimeout(publicStatus);
   status.textContent = "Checking for updates…";
   try {
-    const [refresh, benzingaResult, accountFailed] = await Promise.all([refreshPublic(),page === "news" ? loadBenzinga() : undefined,refreshAccountSection()]);
+    const response = await fetch(new URL("api/version",appRoot),{cache:"no-store",signal:AbortSignal.timeout(10000)});
+    if (!response.ok) throw Error("Version check unavailable.");
+    const {version} = await response.json();
+    if (version !== document.querySelector('meta[name="app-version"]').content) {
+      status.textContent = "Installing v" + version + "…";
+      location.reload();
+      return;
+    }
+    status.textContent = "Refreshing dashboard data…";
+    const [refresh, benzingaResult, accountFailed] = await Promise.all([refreshPublic(),loadBenzinga(),refreshAccountSection(true)]);
     if (!refresh) return;
-    if (!await refreshDashboard()) throw Error("Dashboard refresh failed.");
+    if (!await refreshDashboard(true)) throw Error("Dashboard refresh failed.");
     if (page === "asset") await loadAssetDetails();
     if (page === "ai-watchlist" || page === "opportunities") await loadChecklistBuys(page === "ai-watchlist");
     const refreshed = status.textContent;

@@ -92,10 +92,12 @@ if (config?.accountMode) {
     document.addEventListener("refresh-account-section",event=>{event.detail.push(fetchUsage("POST"));});
   }
   const onPaperScreen = paramsForScreen.get("screen") === "activity" || location.hash === "#activity";
-  if (!document.getElementById("overview").hidden) {
+  const onOverview = !document.getElementById("overview").hidden;
+  let refreshOverviewPaper;
+  if (onOverview) {
     let overviewRequest = 0;
     const publishOverview = detail => document.dispatchEvent(new CustomEvent("overview-paper-balance",{detail}));
-    async function refreshOverviewPaper() {
+    refreshOverviewPaper = async function() {
       const request = ++overviewRequest;
       try {
         const response = await call("alpaca-paper");
@@ -109,7 +111,7 @@ if (config?.accountMode) {
         if (request === overviewRequest) publishOverview({status:"unavailable"});
         return false;
       }
-    }
+    };
     publishOverview({status:"loading"});
     void refreshOverviewPaper();
     document.addEventListener("refresh-account-section",event=>{event.detail.push(refreshOverviewPaper());});
@@ -375,8 +377,8 @@ if (config?.accountMode) {
     liveOrders.replaceChildren();
     liveChecked.textContent = "";
   }
-  async function refreshActivity() {
-    if (!onPaperScreen) return;
+  async function refreshActivity(full = false) {
+    if (!onPaperScreen && !full) return;
     const version = ++activityVersion;
     try {
       const response = await call("paper-activity?view=dashboard");
@@ -413,6 +415,12 @@ if (config?.accountMode) {
     document.addEventListener("refresh-account-section",event=>{event.detail.push(refreshActivity(),updateSchedule(),refreshPaperSignals());});
     addEventListener("pageshow", event => { if (event.persisted) void refreshActivity(); });
   }
+  document.addEventListener("refresh-all-account-data",event=>{
+    if (!config.signedIn) return;
+    event.detail.push(fetchUsage("POST"),getSnapshot("POST"),refreshActivity(true),updateSchedule());
+    if (onOverview) event.detail.push(refreshOverviewPaper());
+    if (onPaperScreen) event.detail.push(refreshPaperSignals());
+  });
   function renderAccount(data) {
     if (data.connected) showPaperBalance(balance,data.account);
     else balance.textContent = "Connect an Alpaca Paper account to view its balance here.";

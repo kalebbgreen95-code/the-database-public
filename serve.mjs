@@ -37,17 +37,17 @@ function acceptsGzip(value = "") {
   return (choices.get("gzip") ?? choices.get("*") ?? 0) > 0;
 }
 const publicUpdates = new Map();
-function sharedPublicUpdate(section,manual) {
+function sharedPublicUpdate(section,manual,force = false) {
   const now = Date.now();
   let update = publicUpdates.get(section);
-  if (!update || now-update.started >= (manual ? 60000 : 10*60000)) {
+  if (!update || (!update.pending && (force || now-update.started >= (manual ? 60000 : 10*60000)))) {
     const date = new Date(now);
     const result = section === "crypto" ? refreshPublicCrypto(date).then(cryptoMarket=>({cryptoMarket}))
       : publicFeedUpdate(date);
-    update = {started:now,result:result.catch(()=>{
+    update = {started:now,pending:true,result:result.catch(()=>{
       if (publicUpdates.get(section) === update) publicUpdates.delete(section);
       return null;
-    })};
+    }).finally(()=>{update.pending=false;})};
     publicUpdates.set(section,update);
   }
   return update.result;
@@ -55,6 +55,11 @@ function sharedPublicUpdate(section,manual) {
 export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tenantService,handleAuth,paperSchedule) {
   res.setHeader("X-Content-Type-Options","nosniff");
   const path = req.url?.split("?")[0];
+  if (path === "/api/version" && req.method === "GET") {
+    res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"no-store"});
+    res.end(JSON.stringify({version:manifest.version}));
+    return;
+  }
   if (path === "/internal/paper-schedule") {
     const status = req.method === "POST" && paperSchedule
       ? await paperSchedule.tick(req.headers["x-paper-scheduler"]).catch(()=>503) : 404;
@@ -73,7 +78,7 @@ export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tena
       return;
     }
     const result = section ? await sharedPublicUpdate(section,manual)
-      : await Promise.all([sharedPublicUpdate("feeds",manual),sharedPublicUpdate("crypto",manual)])
+      : await Promise.all([sharedPublicUpdate("feeds",manual,manual),sharedPublicUpdate("crypto",manual,manual)])
         .then(parts=>parts.some(Boolean) ? Object.assign({partial:parts.some(part=>!part)},...parts) : null);
     res.writeHead(result ? 200 : 503,{"Content-Type":"application/json","Cache-Control":manual ? "no-store" : "public, max-age=60"});
     res.end(JSON.stringify({version:manifest.version,...result}));

@@ -978,7 +978,7 @@ function renderOverviewBalances() {
     return;
   }
   const amount = value => value != null && Number.isFinite(Number(value)) ? money(Number(value)) : "unavailable";
-  overviewEquity.textContent = "Alpaca Paper equity " + amount(account.equity);
+  overviewEquity.replaceChildren("Alpaca Paper equity ",el("span",amount(account.equity),overviewPaper.equityTone));
   overviewCash.textContent = "Paper cash " + amount(account.cash);
 }
 document.addEventListener("overview-paper-balance",event => {

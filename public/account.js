@@ -96,7 +96,8 @@ if (config?.accountMode) {
         if (response.status === 401) return publishOverview({status:"signed-out"});
         if (!response.ok) throw Error("Paper balance unavailable");
         const data = await response.json();
-        if (request === overviewRequest) publishOverview(data.connected ? {account:data.account} : {status:"disconnected"});
+        if (request === overviewRequest) publishOverview(data.connected
+          ? {account:data.account,equityTone:paperEquityTone(data.account.equity)} : {status:"disconnected"});
       } catch {
         if (request === overviewRequest) publishOverview({status:"unavailable"});
         return false;
@@ -118,6 +119,15 @@ if (config?.accountMode) {
   }
   const onPortfolio = paramsForScreen.get("screen") === "robinhood-portfolio" || location.hash === "#robinhood-portfolio";
   const amount = value => value != null && Number.isFinite(Number(value)) ? money.format(Number(value)) : "unavailable";
+  function paperEquityTone(value) {
+    return value == null || !Number.isFinite(Number(value)) ? "" : Number(value) < 10000 ? "loss" : "gain";
+  }
+  function showPaperBalance(element,account) {
+    const equity = document.createElement("span");
+    equity.className = paperEquityTone(account.equity);
+    equity.textContent = amount(account.equity);
+    element.replaceChildren("Paper equity ",equity," · Cash " + amount(account.cash));
+  }
   const snapshotPanel = document.getElementById("robinhood-snapshot-panel");
   const snapshotStatus = document.getElementById("robinhood-snapshot-status");
   const snapshotAccount = document.getElementById("robinhood-snapshot-account");
@@ -291,7 +301,7 @@ if (config?.accountMode) {
       if (!data.connected) return clearActivity();
       livePaper.hidden = false;
       liveStatus.textContent = "";
-      liveEquity.textContent = "Paper equity " + amount(data.account.equity) + " · Cash " + amount(data.account.cash);
+      showPaperBalance(liveEquity,data.account);
       fillList(livePositions,data.positions.map(row=>row.symbol + " · " + row.quantity + " · " + amount(row.marketValue)),"No open positions.");
       fillList(liveOrders,data.orders.map(row=>[row.symbol,row.side,row.status,
         Number(row.quantity)>0 ? row.quantity + " filled at " + amount(row.averagePrice) : "",
@@ -309,10 +319,8 @@ if (config?.accountMode) {
     addEventListener("pageshow", event => { if (event.persisted) void refreshActivity(); });
   }
   function renderAccount(data) {
-    balance.textContent = data.connected
-      ? "Paper equity " + (data.account.equity == null ? "unavailable" : money.format(data.account.equity)) +
-        " · Cash " + (data.account.cash == null ? "unavailable" : money.format(data.account.cash))
-      : "Connect an Alpaca Paper account to view its balance here.";
+    if (data.connected) showPaperBalance(balance,data.account);
+    else balance.textContent = "Connect an Alpaca Paper account to view its balance here.";
     disconnect.hidden = !data.connected;
   }
   async function update() {

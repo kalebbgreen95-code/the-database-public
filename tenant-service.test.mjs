@@ -3,6 +3,26 @@ import test from "node:test";
 import { createTenantService, openConnectionStore, createHostedConnectionStore } from "./lib/tenant-service.mjs";
 import { randomBytes } from "node:crypto";
 
+test("Oracle publishes an exact Robinhood value only to the configured account", async () => {
+  const ownerId = "11111111-1111-1111-1111-111111111111";
+  const token = "publisher-fixture";
+  const snapshot = {asOf:"2026-11-15T23:00:00.000Z",accountValue:12500,positions:[]};
+  let saved;
+  const handler = createTenantService({
+    authUrl:"https://auth.example",publishableKey:"mock-key",appOrigin:"https://app.example",store:{},
+    oracleRobinhood:{ownerId,token},
+    snapshotStore:{save:async (id,value)=>{ assert.equal(id,ownerId); saved=value; return true; }},
+  });
+  const upload = (credential,body) => handler({
+    path:"/account-api/robinhood-publish",method:"POST",
+    headers:new Headers({"x-robinhood-publisher-token":credential}),readJson:async()=>body,
+  });
+  assert.equal((await upload("wrong",snapshot)).status,401);
+  assert.equal(saved,undefined);
+  assert.equal((await upload(token,snapshot)).status,200);
+  assert.deepEqual(saved,{...snapshot,valueScope:"robinhood"});
+});
+
 test("Robinhood refresh only imports newer snapshots for the configured owner", async () => {
   const owner = "11111111-1111-1111-1111-111111111111";
   const other = "22222222-2222-2222-2222-222222222222";

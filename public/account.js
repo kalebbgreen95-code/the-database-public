@@ -156,12 +156,13 @@ if (config?.accountMode) {
       if (response.status === 401) return showSnapshotSignIn();
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? "Couldn’t load your Robinhood snapshot.");
-      const {snapshot,updated,sourceConfigured} = data;
+      const {snapshot,updated,sourceConfigured,pending} = data;
       if (request !== snapshotRequest) return;
       snapshotAccount.hidden = true;
       showSnapshot(snapshot);
       showSnapshotStatus(method === "POST"
-        ? (sourceConfigured === false ? "Live snapshot source is unavailable."
+        ? (pending ? "Robinhood sync requested. Showing the last saved snapshot."
+          : sourceConfigured === false ? "Live snapshot source is unavailable."
           : updated ? "New Robinhood snapshot imported." : "No newer Robinhood snapshot is available.")
         : (snapshot ? "" : "No Robinhood snapshot is available."), method === "POST" && updated);
     } catch (error) {

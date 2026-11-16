@@ -790,7 +790,8 @@ function renderRobinhood(data, portfolioOnly = false, imported = null) {
     const marketValue = hasPrices ? holdings.reduce((sum, { price, quantity }) => sum + price * quantity, 0) : null;
     const hasAccountValue = Number.isFinite(synced?.accountValue);
     const usesMarketQuotes = !imported && holdings.some(item => item.quoteSource !== "Demo snapshot");
-    const valueLabel = synced?.valueScope === "combined-estimate" ? "Estimated Robinhood account value"
+    const valueLabel = synced?.valueScope === "robinhood" ? "Robinhood account value"
+      : synced?.valueScope === "combined-estimate" ? "Estimated Robinhood account value"
       : synced?.valueScope === "brokerage" ? "Brokerage value excluding crypto"
       : imported ? (holdings.some(item=>item.type === "crypto") ? "Robinhood account value" : "Reported brokerage value")
       : "Demo portfolio value";

@@ -109,8 +109,9 @@ test("recovery can enter below the old momentum cutoff, and catalysts need local
 
 test("paper crypto sizing scales with equity and respects exposure and available cash", () => {
   const account = {equity:"10000",cash:"10000",buying_power:"40000",non_marginable_buying_power:"10000"};
-  assert.equal(cryptoEntryBudget(account,[]),100);
-  assert.equal(cryptoEntryBudget({...account,equity:"5000"},[]),50);
+  assert.equal(cryptoEntryBudget(account,[]),150);
+  assert.equal(cryptoEntryBudget(account,[],false),100);
+  assert.equal(cryptoEntryBudget({...account,equity:"5000"},[]),75);
   assert.equal(cryptoEntryBudget(account,[{market_value:"475"}]),25);
   assert.equal(cryptoEntryBudget({...account,non_marginable_buying_power:"8"},[]),0);
   assert.equal(cryptoEntryBudget(account,[{market_value:"500"}]),0);

@@ -191,8 +191,6 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       renderKey:env.USAGE_RENDER_API_KEY,renderServiceId:env.RENDER_SERVICE_ID || env.USAGE_RENDER_SERVICE_ID});
     const browserPush = DEMO_SUPABASE_SECRET_KEY && createBrowserPush({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});
-    if (DEMO_SUPABASE_SECRET_KEY) paperSchedule = createPaperSchedule({projectUrl:DEMO_AUTH_URL,
-      serviceKey:DEMO_SUPABASE_SECRET_KEY,store,browserPush});
     let robinhoodSource = env.ROBINHOOD_SNAPSHOT_URL && env.ROBINHOOD_SNAPSHOT_TOKEN && env.ROBINHOOD_SNAPSHOT_OWNER_ID
       ? {url:env.ROBINHOOD_SNAPSHOT_URL,token:env.ROBINHOOD_SNAPSHOT_TOKEN,ownerId:env.ROBINHOOD_SNAPSHOT_OWNER_ID}
       : undefined;
@@ -215,10 +213,16 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       : undefined;
     if (oracleRobinhood) stockScans = createOracleStockScans({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,token:oracleRobinhood.token});
+    const loadStockScan = stockScans && (async()=>{
+      const scan = await stockScans({view:"stocks",method:"GET"});
+      return scan.status===200 ? scan.data : null;
+    });
+    if (DEMO_SUPABASE_SECRET_KEY) paperSchedule = createPaperSchedule({projectUrl:DEMO_AUTH_URL,
+      serviceKey:DEMO_SUPABASE_SECRET_KEY,store,browserPush,loadStockScan});
     const ownerThread = env.ROBINHOOD_SNAPSHOT_OWNER_ID && /^codex:\/\/threads\/[a-f0-9-]{36}$/i.test(env.DEMO_OWNER_THREAD_URL??"")
       ? {id:env.ROBINHOOD_SNAPSHOT_OWNER_ID,url:env.DEMO_OWNER_THREAD_URL} : undefined;
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,robinhoodSource,oracleRobinhood,ownerThread,
-      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore,usageSources});
+      appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore,usageSources,loadStockScan});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});
   }
   const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth,paperSchedule,stockScans));

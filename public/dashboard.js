@@ -302,8 +302,8 @@ function checklistJudgment(passed, measurement) {
   return detail;
 }
 
-function renderStockChecklist(fundamentals, trailingPe, forwardPe) {
-  const checks = stockChecklist(fundamentals, trailingPe, forwardPe);
+function renderStockChecklist(fundamentals, trailingPe, forwardPe, recordedChecks) {
+  const checks = recordedChecks ?? stockChecklist(fundamentals, trailingPe, forwardPe);
   showMetrics("asset-checklist", checks.map(([label, passed, measurement]) =>
     [label, checklistJudgment(passed, measurement || (passed == null ? "Insufficient reported figures" : ""))]));
 }
@@ -618,7 +618,7 @@ async function loadAssetDetails() {
       const f = data.fundamentals;
       const robinhood = data.robinhoodPe;
       const forwardPe = data.forwardEstimate?.epsAvg > 0 && data.price > 0 ? data.price / data.forwardEstimate.epsAvg : null;
-      renderStockChecklist(f, data.simulatedTrailingPe, forwardPe);
+      renderStockChecklist(f, data.simulatedTrailingPe, forwardPe, data.screenChecks);
       const pe = robinhood ? el("a", robinhood.ratio.toFixed(2) + "× · Robinhood") : null;
       if (pe) Object.assign(pe, { href: robinhood.url, target: "_blank", rel: "noopener noreferrer" });
       const reportedCap = data.robinhoodStats?.marketCap;
@@ -1573,7 +1573,7 @@ async function loadChecklistBuys(ai = false) {
   try {
     const response = await readDemo(ai ? "/api/checklist-buys?view=ai" : "/api/checklist-buys", {signal: AbortSignal.timeout(12000)});
     if (!response.ok) throw Error("Checklist scan failed");
-    const {rows, pending, usingPrevious, failed, funds, checkedAt} = await response.json();
+    const {rows, pending, usingPrevious, failed, funds, checkedAt, source:scanSource} = await response.json();
     await waitForDashboardPress();
     if (!ai) $("fund-status").textContent = pending ? (usingPrevious ? "Updating ETFs · Showing last completed results" : "Checking tracked ETFs…")
       : funds?.length ? "" : "No tracked ETFs found.";
@@ -1592,7 +1592,11 @@ async function loadChecklistBuys(ai = false) {
       const score = el("span", scored ? row.passes + "/" + row.checks.length + " passed" : "Unscored");
       score.className = !scored ? "" : !row.passes ? "loss" : "gain";
       item.append(assetLink(row.symbol), " · ");
-      if (!ai) item.append(potentialBuyPrice(row.symbol, row.quote), " · ");
+      if (!ai) {
+        const price = potentialBuyPrice(row.symbol, row.quote);
+        if (scanSource) delete price.dataset.potentialBuySymbol;
+        item.append(price, " · ");
+      }
       item.append(score, ...percentageText(
         Number.isFinite(row.year) ? " · 1Y " + percent(row.year) : " · 1Y history unavailable"));
       if (row.theme) item.append(" · ", el("small", row.theme));
@@ -1633,7 +1637,7 @@ async function loadChecklistBuys(ai = false) {
     status.textContent = pending ? (usingPrevious ? "Updating · Showing last completed results" :
       ai ? "Checking AI Watchlist stocks…" : "Checking tracked stocks…")
       : failed ? "Some stocks could not be checked." : rows.length ? "" : ai ? "No AI stocks meet the stock screen." : "No stocks passed the trailing P/E screen.";
-    if (checkedAt) status.textContent = [status.textContent, "Last scan " + date(checkedAt) + " ET"].filter(Boolean).join(" · ");
+    if (checkedAt) status.textContent = [status.textContent, scanSource, "Last scan " + date(checkedAt) + " ET"].filter(Boolean).join(" · ");
     restorePagePosition();
     if (pending) setTimeout(() => void loadChecklistBuys(ai), 2500);
   } catch {
@@ -1938,7 +1942,8 @@ if (refreshButton) {
         }
       }
       if (page === "ai-watchlist" || (page === "opportunities" && !liveCrypto)) {
-        status.textContent = "Screen recalculated from the current data.";
+        status.textContent = page === "opportunities" && $("buy-asset-class").value === "stocks"
+          ? "" : "Screen recalculated from the current data.";
         return;
       }
       showRefreshed(status);

@@ -7,6 +7,18 @@ const now = new Date();
 const data = process.argv.includes("--offline") ? {treasury:null,news:[],sources:[],checkedAt:now.toISOString()} : await publicFeedUpdate(now);
 const demo = replay(+now);
 const snapshot = dashboardData(demo, data, now.toISOString());
+const originalScan = JSON.parse(await readFile(new URL("./lib/original-stock-scan.json",import.meta.url),"utf8"));
+snapshot.checklist = {...snapshot.checklist,...originalScan,source:"Original app scan"};
+for (const row of originalScan.rows) {
+  if (!snapshot.catalog.some(asset => asset.symbol === row.symbol)) {
+    snapshot.catalog.push({symbol:row.symbol,name:row.symbol,kind:"Stock"});
+    snapshot.details[row.symbol] = {
+      price:row.quote?.price,time:row.quote?.time,priceSource:"Original app scan",
+      changes:{"1Y":{percent:row.year}},changeSource:"Original app scan",
+      technicals:row.technicals,headlines:[],setup:[],screenChecks:row.checks,
+    };
+  }
+}
 const dir = new URL("./dist/",import.meta.url);
 await mkdir(dir,{recursive:true});
 for (const file of ["dashboard.js","style.css","briefing.mjs","public-data.js","account.js","device-alerts.js","notification-worker.js"]) {

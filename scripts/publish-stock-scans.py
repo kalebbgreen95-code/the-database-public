@@ -1,6 +1,8 @@
 import json
 import pathlib
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
@@ -16,15 +18,27 @@ def publish(config):
     target = urljoin(config["publish_url"], "/account-api/oracle-stock-scans")
     if not target.startswith("https://"):
         raise ValueError("An HTTPS Render origin is required")
-    for view, suffix in (("stocks", ""), ("ai", "?view=ai")):
-        scan = json_request(original + suffix)
-        if scan.get("pending") or not scan.get("checkedAt"):
-            continue
+    def publish_view(view, suffix):
+        for attempt in range(19):
+            scan = json_request(original + suffix)
+            if not scan.get("pending") and scan.get("checkedAt"):
+                break
+            if attempt < 18:
+                time.sleep(5)
+        else:
+            raise RuntimeError(view + " scan did not finish")
         payload = {key: scan.get(key) for key in ("rows", "checkedAt", "failed")}
         json_request(target + "?view=" + view, {
             "Content-Type": "application/json",
             "x-robinhood-publisher-token": config["token"],
         }, json.dumps(payload, allow_nan=False, separators=(",", ":")).encode())
+        print(view + " scan published at " + scan["checkedAt"], flush=True)
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        stocks = workers.submit(publish_view, "stocks", "")
+        ai = workers.submit(publish_view, "ai", "?view=ai")
+        stocks.result()
+        ai.result()
 
 
 if __name__ == "__main__":

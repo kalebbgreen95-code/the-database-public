@@ -50,17 +50,7 @@ if (config?.accountMode) {
     }
   }
   function showUsage(snapshot) {
-    const codex = snapshot?.codex;
     const bandwidth = snapshot?.render;
-    document.getElementById("codex-usage-checked").textContent =
-      codex ? "Last checked " + et(codex.checkedAt) : "No Codex usage snapshot.";
-    document.getElementById("codex-usage-windows").replaceChildren(...(codex?.windows ?? []).map(row=>{
-      const item = document.createElement("li");
-      const windowLabel = row.minutes%1440 === 0 ? row.minutes/1440 + "-day"
-        : row.minutes%60 === 0 ? row.minutes/60 + "-hour" : row.minutes + "-minute";
-      item.textContent = windowLabel + " limit · " + row.remaining + "% remaining · Resets " + et(row.resetsAt);
-      return item;
-    }));
     document.getElementById("render-usage-summary").textContent = bandwidth
       ? bandwidth.usedMB + (bandwidth.scope === "service" ? " MB · The Database service" :
         " MB of " + bandwidth.includedGB + " GB used · Workspace total") + " · " + bandwidth.month +

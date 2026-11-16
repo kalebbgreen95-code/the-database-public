@@ -162,7 +162,7 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey});
     const usageStore = DEMO_SUPABASE_SECRET_KEY && createHostedSnapshotStore({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,kind:"usage"});
-    const usageSources = usageStore && createUsageSources({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,
+    const usageSources = usageStore && createUsageSources({
       renderKey:env.USAGE_RENDER_API_KEY,renderServiceId:env.RENDER_SERVICE_ID || env.USAGE_RENDER_SERVICE_ID});
     const browserPush = DEMO_SUPABASE_SECRET_KEY && createBrowserPush({projectUrl:DEMO_AUTH_URL,
       serviceKey:DEMO_SUPABASE_SECRET_KEY,encryptionKey,appOrigin:DEMO_ACCOUNT_ORIGIN});

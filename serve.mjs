@@ -36,15 +36,21 @@ function acceptsGzip(value = "") {
   }));
   return (choices.get("gzip") ?? choices.get("*") ?? 0) > 0;
 }
-let publicUpdate;
-function sharedPublicUpdate(manual) {
+const publicUpdates = new Map();
+function sharedPublicUpdate(section,manual) {
   const now = Date.now();
-  if (!publicUpdate || now-publicUpdate.started >= (manual ? 60000 : 10*60000)) {
+  let update = publicUpdates.get(section);
+  if (!update || now-update.started >= (manual ? 60000 : 10*60000)) {
     const date = new Date(now);
-    publicUpdate = {started:now,result:Promise.all([publicFeedUpdate(date),refreshPublicCrypto(date)])
-      .then(([feeds,cryptoMarket])=>({...feeds,cryptoMarket})).catch(()=>null)};
+    const result = section === "crypto" ? refreshPublicCrypto(date).then(cryptoMarket=>({cryptoMarket}))
+      : publicFeedUpdate(date);
+    update = {started:now,result:result.catch(()=>{
+      if (publicUpdates.get(section) === update) publicUpdates.delete(section);
+      return null;
+    })};
+    publicUpdates.set(section,update);
   }
-  return publicUpdate.result;
+  return update.result;
 }
 export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tenantService,handleAuth,paperSchedule) {
   res.setHeader("X-Content-Type-Options","nosniff");
@@ -61,7 +67,14 @@ export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tena
       res.writeHead(403).end();
       return;
     }
-    const result = await sharedPublicUpdate(manual);
+    const section = new URL(req.url,"http://localhost").searchParams.get("section");
+    if (section && !["feeds","crypto"].includes(section)) {
+      res.writeHead(400).end();
+      return;
+    }
+    const result = section ? await sharedPublicUpdate(section,manual)
+      : await Promise.all([sharedPublicUpdate("feeds",manual),sharedPublicUpdate("crypto",manual)])
+        .then(parts=>parts.some(Boolean) ? Object.assign({partial:parts.some(part=>!part)},...parts) : null);
     res.writeHead(result ? 200 : 503,{"Content-Type":"application/json","Cache-Control":manual ? "no-store" : "public, max-age=60"});
     res.end(JSON.stringify({version:manifest.version,...result}));
     return;

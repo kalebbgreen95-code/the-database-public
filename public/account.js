@@ -1,10 +1,11 @@
-import { disableDevicePush } from "./device-alerts.js?v=208";
+import { disableDevicePush, setDeviceSignIn } from "./device-alerts.js?v=209";
 import { publicRoute } from "./public-data.js";
 
 const config = await fetch("./account-api/config", {cache:"no-store"}).then(response =>
   response.ok ? response.json() : null).catch(() => null);
 
 if (config?.accountMode) {
+  setDeviceSignIn(config.signedIn);
   const pagePicker = document.getElementById("dashboard-page");
   const dialog = document.getElementById("account-dialog");
   const status = document.getElementById("account-status");
@@ -279,8 +280,12 @@ if (config?.accountMode) {
     try {
       const response = await call("paper-activity");
       if (version !== activityVersion) return;
-      if (response.status === 401) return clearActivity();
+      if (response.status === 401) {
+        setDeviceSignIn(false);
+        return clearActivity();
+      }
       if (!response.ok) throw Error("Alpaca Paper activity is temporarily unavailable.");
+      setDeviceSignIn(true);
       const data = await response.json();
       if (version !== activityVersion) return;
       if (!data.connected) return clearActivity();
@@ -313,6 +318,7 @@ if (config?.accountMode) {
   async function update() {
     const response = await call("alpaca-paper");
     if (response.status === 401) {
+      setDeviceSignIn(false);
       signIn.hidden = false;
       signOut.hidden = true;
       form.hidden = true;
@@ -324,6 +330,7 @@ if (config?.accountMode) {
     signOut.hidden = false;
     form.hidden = false;
     if (!response.ok) throw Error("Could not read the paper account.");
+    setDeviceSignIn(true);
     renderAccount(await response.json());
   }
   async function run(action) {

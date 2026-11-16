@@ -10,12 +10,21 @@ const supported = isSecureContext && "Notification" in window && "serviceWorker"
 const worker = new URL("./notification-worker.js",import.meta.url);
 const endpoint = new URL("./account-api/browser-push",import.meta.url);
 let subscription;
+let signedIn;
+
+export function setDeviceSignIn(value) {
+  signedIn = value;
+  renderState();
+}
 
 async function request(method,device) {
   const response = await fetch(endpoint,{method,cache:"no-store",signal:AbortSignal.timeout(18000),
     ...(device ? {headers:{"Content-Type":"application/json"},body:JSON.stringify({endpoint:device.endpoint})} : {})});
   const data = await response.json();
-  if (response.status === 401) throw Error("Sign in from Account to enable push notifications.");
+  if (response.status === 401) {
+    setDeviceSignIn(false);
+    throw Error("Sign in through Configure → Account to manage push notifications.");
+  }
   if (!response.ok) throw Error(data.error ?? "Browser push is unavailable.");
   return data;
 }
@@ -36,7 +45,8 @@ function renderState() {
   status.textContent = permission === "unsupported" ? "This browser does not support push notifications."
     : permission === "denied" ? "Notifications are blocked in this browser’s site settings."
     : active ? "This device can receive paper order alerts while the dashboard is closed."
-    : "Sign in to enable paper order alerts on this device.";
+    : signedIn === false ? "Sign in through Configure → Account to enable alerts."
+    : "Enable push alerts on this device.";
 }
 
 async function existingSubscription() {

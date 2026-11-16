@@ -815,18 +815,19 @@ function renderRobinhood(data, portfolioOnly = false, imported = null) {
     const isCrypto = raw.includes("/") || ["crypto", "currency_pair"].includes(item.type);
     const symbol = isCrypto && !raw.includes("/") ? raw.replace(/[-_]USD$/, "") + "/USD" : raw;
     if (seen.has(symbol)) continue;
-    const entry = { symbol, quantity: item.quantity, market: marketBySymbol.get(symbol),
+    const market = marketBySymbol.get(symbol);
+    const entry = { symbol, quantity: item.quantity, market, closes: item.recentCloses ?? market?.recentCloses,
       snapshotPrice: synced ? item.price : null, quoteAt: synced ? item.quoteAt : null, quoteSource: item.quoteSource, gain: synced ? pnl(item) : null };
     seen.add(symbol);
     groups[isCrypto ? "crypto" : "stocks"].push(entry);
   }
   for (const [group, entries] of Object.entries(groups)) {
     const list = $(listPrefix + group);
-    const signature = JSON.stringify(entries.map(({ symbol, quantity, market, snapshotPrice, quoteAt, quoteSource, gain }) =>
-      [symbol, quantity, snapshotPrice, quoteAt, quoteSource, gain, market?.price, market?.fresh, market?.changes?.["1D"]?.percent, market?.recentCloses]));
+    const signature = JSON.stringify(entries.map(({ symbol, quantity, market, snapshotPrice, quoteAt, quoteSource, gain, closes }) =>
+      [symbol, quantity, snapshotPrice, quoteAt, quoteSource, gain, market?.price, market?.fresh, market?.changes?.["1D"]?.percent, closes]));
     if (list.dataset.rendered === signature) continue;
     list.dataset.rendered = signature;
-    list.replaceChildren(...(entries.length ? entries.map(({ symbol, quantity, market, snapshotPrice, quoteAt, quoteSource, gain }) => {
+    list.replaceChildren(...(entries.length ? entries.map(({ symbol, quantity, market, snapshotPrice, quoteAt, quoteSource, gain, closes }) => {
       const row = el("li", "");
       const name = el("span", "");
       const ticker = group === "crypto" ? symbol.replace(/\/USD$/, "") : symbol;
@@ -851,7 +852,7 @@ function renderRobinhood(data, portfolioOnly = false, imported = null) {
       if (!synced && market?.price > 0 && !market.fresh) quote.append(el("small", "Last quote"));
       const content = el("span", "");
       content.className = portfolioOnly ? "watchlist-row portfolio-row" : "watchlist-row";
-      const chart = watchlistSparkline(market?.recentCloses);
+      const chart = watchlistSparkline(closes);
       if (imported && chart.tagName !== "CANVAS") chart.hidden = true;
       content.append(name, chart, quote);
       if (quoteDetails) {

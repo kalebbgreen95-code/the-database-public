@@ -1,4 +1,5 @@
 import json
+import math
 import pathlib
 import subprocess
 import sys
@@ -17,10 +18,21 @@ def request(url, headers, data=None):
 
 
 def publish():
+    snapshot = json.loads(snapshot_path.read_bytes())
+    try:
+        status = request("http://127.0.0.1:8787/api/status", {})
+        history = {row["symbol"]: row.get("recentCloses") or [] for row in status["market"]}
+        for position in snapshot["positions"]:
+            closes = [price for price in history.get(position["symbol"], [])[-20:]
+                      if type(price) in (int, float) and math.isfinite(price) and price > 0]
+            if len(closes) >= 2:
+                position["recentCloses"] = closes
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print("Robinhood chart history:", type(error).__name__, flush=True)
     request(config["publish_url"], {
         "Content-Type": "application/json",
         "x-robinhood-publisher-token": config["token"],
-    }, snapshot_path.read_bytes())
+    }, json.dumps(snapshot, allow_nan=False, separators=(",", ":")).encode())
 
 
 def watch():

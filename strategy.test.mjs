@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { allocationSignal } from "./lib/allocation.mjs";
+import { cryptoEntryBudget } from "./lib/paper-run.mjs";
 import { strategies, signal, exitReason, performance, weight, intradayCryptoSignal, cryptoExecutionQuote, intradayCryptoExit } from "./lib/strategy.mjs";
 
 test("intraday crypto waits through early weakness and requires two completed reversal candles", () => {
@@ -104,4 +105,13 @@ test("recovery can enter below the old momentum cutoff, and catalysts need local
   assert.ok(setup.evidence.includes("up-candle volume dominates with elevated activity"));
   assert.ok(setup.evidence.includes("BTC 30-minute trend rising"));
   assert.ok(setup.evidence.includes("Recent catalyst · Bitcoin ETF approved"));
+});
+
+test("paper crypto sizing scales with equity and respects exposure and available cash", () => {
+  const account = {equity:"10000",cash:"10000",buying_power:"40000",non_marginable_buying_power:"10000"};
+  assert.equal(cryptoEntryBudget(account,[]),100);
+  assert.equal(cryptoEntryBudget({...account,equity:"5000"},[]),50);
+  assert.equal(cryptoEntryBudget(account,[{market_value:"475"}]),25);
+  assert.equal(cryptoEntryBudget({...account,non_marginable_buying_power:"8"},[]),0);
+  assert.equal(cryptoEntryBudget(account,[{market_value:"500"}]),0);
 });

@@ -39,6 +39,16 @@ if (config?.accountMode) {
   const renderMeter = document.getElementById("render-usage-meter");
   const et = value=>new Date(value).toLocaleString("en-US",{timeZone:"America/New_York"}) + " ET";
   let usageRequest = 0;
+  let usageNoticeTimer;
+  function showUsageStatus(message, warnings = "") {
+    clearTimeout(usageNoticeTimer);
+    usageStatus.textContent = [message, warnings].filter(Boolean).join(" · ");
+    if (message === "Usage updated." || message === "Usage is current.") {
+      usageNoticeTimer = setTimeout(() => {
+        usageStatus.textContent = warnings;
+      }, 3000);
+    }
+  }
   function showUsage(snapshot) {
     const codex = snapshot?.codex;
     const bandwidth = snapshot?.render;
@@ -66,7 +76,7 @@ if (config?.accountMode) {
     ++usageRequest;
     showUsage(null);
     usageAccount.hidden = false;
-    usageStatus.textContent = "Sign in to view your saved usage.";
+    showUsageStatus("Sign in to view your saved usage.");
   }
   async function fetchUsage(method="GET") {
     const request = ++usageRequest;
@@ -78,10 +88,14 @@ if (config?.accountMode) {
       if (!response.ok) throw Error(result.error ?? "Usage data unavailable.");
       showUsage(result.snapshot);
       usageAccount.hidden = true;
-      usageStatus.textContent = method === "POST" ? [result.updated ? "Usage updated." : "",
-        ...(result.missing ?? [])].filter(Boolean).join(" · ") || "Usage is current." : "";
+      const warnings = (result.missing ?? []).filter(Boolean).join(" · ");
+      if (method === "POST") {
+        showUsageStatus(result.updated ? "Usage updated." : warnings ? "" : "Usage is current.", warnings);
+      } else {
+        showUsageStatus("");
+      }
     } catch (error) {
-      if (request === usageRequest) usageStatus.textContent = error.message;
+      if (request === usageRequest) showUsageStatus(error.message);
       return false;
     }
   }

@@ -453,12 +453,19 @@ if (config?.accountMode) {
   const configure = document.getElementById("configure-button");
   const configureControl = document.getElementById("configure-control");
   configureControl.hidden = false;
-  configure.addEventListener("click",openAccount);
+  configure.addEventListener("click",()=>openAccount(false));
+  const accountSettings = document.getElementById("account-settings");
+  accountSettings.addEventListener("toggle",()=>{
+    if (accountSettings.open && dialog.open) void run(update);
+  });
   const threadLink = document.getElementById("configure-thread-link");
   let threadLinkRequest = 0;
-  function openAccount() {
+  function openAccount(expand = true) {
+    const opening = !dialog.open;
+    const alreadyExpanded = accountSettings.open;
+    accountSettings.open = expand !== false;
     if (!dialog.open) dialog.showModal();
-    void run(update);
+    if (opening && accountSettings.open && alreadyExpanded) void run(update);
     const request = ++threadLinkRequest;
     threadLink.hidden = true;
     threadLink.removeAttribute("href");
@@ -597,8 +604,8 @@ if (config?.accountMode) {
     document.dispatchEvent(new Event("paper-connection-changed"));
     renderAccount(await response.json());
   }));
-  if (result === "ready" || result === "failed") {
-    if (result === "failed") status.textContent = "Sign-in could not be completed.";
+  if (result === "failed") {
+    status.textContent = "Sign-in could not be completed.";
     openAccount();
   }
 }

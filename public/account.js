@@ -29,7 +29,9 @@ if (config?.accountMode) {
   const liveHistory = document.getElementById("connected-paper-history");
   const liveChart = document.getElementById("connected-paper-chart");
   const livePositions = document.getElementById("connected-paper-positions");
+  const livePending = document.getElementById("connected-paper-pending");
   const liveOrders = document.getElementById("connected-paper-orders");
+  const liveChecked = document.getElementById("connected-paper-checked");
   const paramsForScreen = new URLSearchParams(location.search);
   const onUsage = paramsForScreen.get("screen") === "usage" || location.hash === "#usage";
   const usageAccount = document.getElementById("usage-account-open");
@@ -253,7 +255,8 @@ if (config?.accountMode) {
     scheduled = data.enabled;
     scheduleButton.textContent = scheduled ? "Disable scheduled paper trading" : "Enable scheduled paper trading";
     scheduleStatus.textContent = scheduled
-      ? "Checks about every 20 minutes. " + (data.outcome ?? "Waiting for the first scheduled check.")
+      ? ["Paper entries on",data.checkedAt ? "Last evaluated " + et(data.checkedAt) : "Waiting for the first scheduled check",
+        data.outcome].filter(Boolean).join(" · ")
       : "Scheduled crypto checks are off.";
   }
   async function updateSchedule(method="GET") {
@@ -289,7 +292,7 @@ if (config?.accountMode) {
       runButton.disabled = false;
     }
   });
-  previewButton.addEventListener("click",async()=>{
+  async function refreshPaperSignals() {
     if (previewRunning) return;
     previewRunning = true;
     const version = ++previewVersion;
@@ -304,20 +307,56 @@ if (config?.accountMode) {
       if (!preview.connected) throw Error("Connect an Alpaca Paper account first.");
       previewStatus.textContent = [preview.etfs.status,preview.crypto.status].join(" · ");
       fillList(previewRows,[...preview.etfs.rows,...preview.crypto.rows].map(row=>
-        [row.symbol,row.signal,...row.evidence].join(" · ")),"No signals available.");
+        [paperAssetLink(row.symbol)," · " + [row.signal,...row.evidence].join(" · ")]),"No signals available.");
     } catch (error) {
       if (version === previewVersion) previewStatus.textContent = error.message;
     } finally {
       previewButton.disabled = false;
       previewRunning = false;
     }
-  });
+  }
+  previewButton.addEventListener("click",()=>void refreshPaperSignals());
+  function paperAssetLink(symbol,assetClass) {
+    const ticker = assetClass === "crypto" ? symbol.replace(/\/?USD$/,"/USD") : symbol;
+    const link = document.createElement("a");
+    link.className = "ticker-link";
+    link.href = publicRoute("/asset?" + new URLSearchParams({symbol:ticker}));
+    link.textContent = ticker;
+    return link;
+  }
   function fillList(list, rows, empty) {
-    list.replaceChildren(...(rows.length ? rows : [empty]).map(text=>{
+    list.replaceChildren(...(rows.length ? rows : [empty]).map(contents=>{
       const item = document.createElement("li");
-      item.textContent = text;
+      item.append(...(Array.isArray(contents) ? contents : [contents]));
       return item;
     }));
+  }
+  function renderPaperOrders(orders) {
+    const columns = ["Symbol","Side","Source","Status","Filled quantity","Gross fill (USD)","Average fill","Time (ET)"];
+    if (!orders.length) {
+      const row = liveOrders.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = columns.length;
+      cell.textContent = "No Alpaca orders.";
+      return;
+    }
+    for (const order of orders) {
+      const row = liveOrders.insertRow();
+      const filled = Number(order.quantity)>0 && Number(order.averagePrice)>0;
+      const values = [paperAssetLink(order.symbol),order.side,order.automated ? "Bot" : "Other",order.status,
+        order.quantity??"—",filled ? amount(Number(order.quantity)*Number(order.averagePrice)) : "—",
+        filled ? amount(order.averagePrice) : "—",order.at ? et(order.at) : "—"];
+      values.forEach((value,index)=>{
+        const cell = row.insertCell();
+        const label = document.createElement("span");
+        label.className = "paper-cell-label";
+        label.setAttribute("aria-hidden","true");
+        label.textContent = columns[index];
+        const content = document.createElement("span");
+        content.append(value);
+        cell.append(label,content);
+      });
+    }
   }
   function clearActivity() {
     activityVersion++;
@@ -332,7 +371,9 @@ if (config?.accountMode) {
     liveHistory.textContent = "";
     liveChart.hidden = true;
     livePositions.replaceChildren();
+    livePending.replaceChildren();
     liveOrders.replaceChildren();
+    liveChecked.textContent = "";
   }
   async function refreshActivity() {
     if (!onPaperScreen) return;
@@ -352,10 +393,14 @@ if (config?.accountMode) {
       livePaper.hidden = false;
       liveStatus.textContent = "";
       renderPaperScore(data);
-      fillList(livePositions,data.positions.map(row=>row.symbol + " · " + row.quantity + " · " + amount(row.marketValue)),"No open positions.");
-      fillList(liveOrders,data.orders.map(row=>[row.symbol,row.side,row.status,
-        Number(row.quantity)>0 ? row.quantity + " filled at " + amount(row.averagePrice) : "",
-        row.at ? new Date(row.at).toLocaleString() : ""].filter(Boolean).join(" · ")),"No recent orders.");
+      fillList(livePending,(data.pending??[]).map(row=>[paperAssetLink(row.symbol)," · " + row.side + " · " + row.status]),
+        data.pending ? "No pending orders." : "Pending orders unavailable.");
+      fillList(livePositions,data.positions.map(row=>[paperAssetLink(row.symbol,row.assetClass)," · " + row.quantity +
+        " @ " + amount(row.entryPrice) + " · " + amount(row.costBasis) + " entry cost · " + amount(row.marketValue) + " market value"]),
+        "No open positions.");
+      liveOrders.replaceChildren();
+      renderPaperOrders(data.orders);
+      liveChecked.textContent = data.checkedAt ? "Last checked " + et(data.checkedAt) : "";
     } catch {
       if (version !== activityVersion) return;
       liveStatus.textContent = "Alpaca Paper activity could not be refreshed.";
@@ -364,8 +409,8 @@ if (config?.accountMode) {
     }
   }
   if (onPaperScreen) {
-    void refreshActivity();
-    document.addEventListener("refresh-account-section",event=>{event.detail.push(refreshActivity(),updateSchedule());});
+    void refreshActivity().then(()=>{if (!livePaper.hidden) void refreshPaperSignals();});
+    document.addEventListener("refresh-account-section",event=>{event.detail.push(refreshActivity(),updateSchedule(),refreshPaperSignals());});
     addEventListener("pageshow", event => { if (event.persisted) void refreshActivity(); });
   }
   function renderAccount(data) {
@@ -409,9 +454,19 @@ if (config?.accountMode) {
   const configureControl = document.getElementById("configure-control");
   configureControl.hidden = false;
   configure.addEventListener("click",openAccount);
+  const threadLink = document.getElementById("configure-thread-link");
+  let threadLinkRequest = 0;
   function openAccount() {
     if (!dialog.open) dialog.showModal();
     void run(update);
+    const request = ++threadLinkRequest;
+    threadLink.hidden = true;
+    threadLink.removeAttribute("href");
+    void call("thread-link").then(response=>response.ok ? response.json() : null).then(data=>{
+      if (request !== threadLinkRequest || !dialog.open || !/^codex:\/\/threads\/[a-f0-9-]{36}$/i.test(data?.url??"")) return;
+      threadLink.href = data.url;
+      threadLink.hidden = false;
+    }).catch(()=>{});
   }
   pagePicker.addEventListener("open-account",openAccount);
   const assetSymbol = paramsForScreen.get("symbol") ?? "";
@@ -510,6 +565,9 @@ if (config?.accountMode) {
     const response = await call("sign-out","POST");
     if (!response.ok) throw Error("Sign-out failed.");
     status.textContent = "Signed out.";
+    threadLinkRequest++;
+    threadLink.hidden = true;
+    threadLink.removeAttribute("href");
     if (onUsage) showUsageSignIn();
     if (onPortfolio) showSnapshotSignIn();
     document.dispatchEvent(new Event("paper-connection-changed"));

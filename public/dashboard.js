@@ -249,11 +249,6 @@ const selectedPage = page === "asset" ? "" : "/" + page;
 pageSelect.value = selectedPage;
 window.addEventListener("pageshow", () => { pageSelect.value = selectedPage; });
 pageSelect.addEventListener("change", () => {
-  if (pageSelect.value === "/account") {
-    pageSelect.value = selectedPage;
-    pageSelect.dispatchEvent(new Event("open-account"));
-    return;
-  }
   location.assign(navigationTarget(new URL(publicRoute(pageSelect.value), appRoot)));
 });
 $("overview").hidden = Boolean(page);
@@ -1533,7 +1528,7 @@ function renderNews() {
   $("headlines").replaceChildren(...(news.length ? news.map(row => newsItem(row))
     : [el("li",source === "Benzinga" ? benzingaStatus : source ? "No headlines from this source today" : "No additional headlines today")]));
   if (source === "Benzinga" && benzingaNeedsAccount && !news.length &&
-      [...$("dashboard-page").options].some(option=>option.value === "/account")) {
+      !$("configure-control").hidden) {
     const connect = el("button","Open Account");
     connect.type = "button";
     connect.addEventListener("click",()=>$("dashboard-page").dispatchEvent(new Event("open-account")));

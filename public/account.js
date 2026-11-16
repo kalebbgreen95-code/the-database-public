@@ -1,4 +1,4 @@
-import { disableDevicePush } from "./device-alerts.js?v=207";
+import { disableDevicePush } from "./device-alerts.js?v=208";
 import { publicRoute } from "./public-data.js";
 
 const config = await fetch("./account-api/config", {cache:"no-store"}).then(response =>
@@ -340,7 +340,6 @@ if (config?.accountMode) {
     url.search = params.toString();
     history.replaceState(history.state,"",url);
   }
-  pagePicker.add(new Option("Account", "/account"));
   const configure = document.getElementById("configure-button");
   const configureControl = document.getElementById("configure-control");
   const configureLinks = document.getElementById("configure-links");

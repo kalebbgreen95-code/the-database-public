@@ -2,7 +2,10 @@ const enable = document.getElementById("enable-push");
 const test = document.getElementById("test-notification");
 const status = document.getElementById("phone-status");
 const result = document.getElementById("push-result");
-const notificationsOption = document.querySelector('#dashboard-page option[value="/notifications"]');
+const pagePicker = document.getElementById("dashboard-page");
+const notificationsOption = pagePicker.querySelector('option[value="/notifications"]');
+const onNotifications = new URLSearchParams(location.search).get("screen") === "notifications" ||
+  location.hash === "#notifications";
 const supported = isSecureContext && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
 const worker = new URL("./notification-worker.js",import.meta.url);
 const endpoint = new URL("./account-api/browser-push",import.meta.url);
@@ -21,7 +24,13 @@ function renderState() {
   const permission = supported ? Notification.permission : "unsupported";
   enable.disabled = permission === "unsupported";
   const active = Boolean(subscription) && permission === "granted";
-  if (notificationsOption) notificationsOption.hidden = active;
+  if (active) {
+    notificationsOption.remove();
+    if (onNotifications) pagePicker.selectedIndex = -1;
+  } else if (!notificationsOption.parentNode) {
+    pagePicker.append(notificationsOption);
+    if (onNotifications) pagePicker.value = notificationsOption.value;
+  }
   enable.textContent = active ? "Disable push notifications" : "Enable push notifications";
   test.hidden = !active;
   status.textContent = permission === "unsupported" ? "This browser does not support push notifications."
@@ -95,5 +104,15 @@ test.addEventListener("click",async()=>{
 
 renderState();
 if (supported) {
-  void existingSubscription().then(device=>{subscription=device;renderState();}).catch(()=>{});
+  const syncSubscription = async () => {
+    if (enable.disabled) return;
+    const device = await existingSubscription();
+    if (enable.disabled) return;
+    subscription = device;
+    renderState();
+  };
+  void syncSubscription().catch(()=>{});
+  document.addEventListener("visibilitychange",()=>{
+    if (!document.hidden) void syncSubscription().catch(()=>{});
+  });
 }

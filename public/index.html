@@ -145,23 +145,38 @@
 <section id="activity" aria-labelledby="paper-title">
 <div class="section-heading"><h2 id="paper-title"><a href="https://app.alpaca.markets/paper/dashboard/overview" target="_blank" rel="noopener noreferrer">Paper Trading</a></h2><button id="refresh-activity" class="section-refresh" type="button" aria-label="Refresh Paper Trading" title="Refresh Paper Trading"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-activity" class="section-refresh-status" role="status"></p>
 <div id="activity-push-detail" class="push-detail" tabindex="-1" hidden></div>
-<details id="connected-paper" class="paper-panel" hidden open>
-  <summary>Connected Alpaca Paper account</summary>
+<div id="connected-paper" hidden>
+<div class="paper-equity">
+  <h3>Account equity</h3>
   <p id="connected-paper-status" role="status"></p>
-  <p id="connected-paper-equity"></p>
-  <h3>Open positions</h3><ul id="connected-paper-positions"></ul>
-  <h3>Recent orders</h3><ul id="connected-paper-orders"></ul>
-  <h3>Strategy decisions</h3>
-  <p>Preview live crypto and ETF signals. Run the crypto bot once to evaluate a paper order. Crypto entries use up to 1% of paper equity, subject to cash, buying power and the 5% exposure cap.</p>
+  <dl class="paper-score">
+    <div><dt>Paper equity</dt><dd id="connected-paper-equity"></dd></div>
+    <div><dt>Alpaca cash</dt><dd id="connected-paper-cash"></dd></div>
+    <div><dt>Open P/L at last quotes</dt><dd id="connected-paper-pnl"></dd></div>
+    <div><dt>30-day max drawdown</dt><dd id="connected-paper-drawdown"></dd></div>
+  </dl>
+  <p id="connected-paper-history"></p>
+  <canvas id="connected-paper-chart" class="paper-account-chart" width="640" height="160" role="img" aria-label="Alpaca Paper account equity history" hidden></canvas>
+</div>
+<details class="paper-panel" open>
+  <summary>Strategy decisions</summary>
+  <p id="paper-schedule-status" role="status"></p>
   <button id="paper-preview-check" type="button">Check signals</button>
   <button id="paper-run" type="button">Run crypto paper bot once</button>
-  <p id="paper-run-status" role="status"></p>
   <button id="paper-schedule" type="button" hidden>Enable scheduled paper trading</button>
-  <p id="paper-schedule-status" role="status"></p>
+  <p id="paper-run-status" role="status"></p>
   <p id="paper-preview-status" role="status"></p>
   <ul id="paper-preview-rows"></ul>
 </details>
-<p>Simulated strategy results</p><div class="paper-equity">
+<details class="paper-panel" open>
+  <summary>Orders &amp; positions</summary>
+  <h3>Open positions</h3><ul id="connected-paper-positions"></ul>
+  <h3>Recent orders</h3><ul id="connected-paper-orders"></ul>
+</details>
+</div>
+<details class="paper-panel">
+<summary>Simulated strategy results</summary>
+<div class="paper-equity">
 <h3>Account equity</h3>
 <dl id="paper-score" class="paper-score"></dl>
 <p id="equity-summary"></p>
@@ -208,6 +223,7 @@
 <p id="paper-crypto-universe-status"></p><ul id="paper-crypto-universe"></ul>
 </details>
 <details class="paper-panel"><summary>Fill reconciliation</summary><p id="paper-fee-status"></p><ul id="paper-executions"></ul></details>
+</details>
 </section>
 <section id="robinhood-portfolio" hidden><div class="section-heading"><h2 id="robinhood-portfolio-title"><a href="https://applink.robinhood.com/u/portfolio">Robinhood Portfolio</a></h2><button id="refresh-robinhood-portfolio" class="section-refresh" type="button" aria-label="Refresh Robinhood Portfolio" title="Refresh Robinhood Portfolio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 4 4-4 4m4-4h-4a7 7 0 1 0 7 7"/></svg></button></div><p id="refresh-status-robinhood-portfolio" class="section-refresh-status" role="status"></p>
 <div id="robinhood-snapshot-panel" hidden aria-labelledby="robinhood-portfolio-title">

@@ -23,6 +23,11 @@ if (config?.accountMode) {
   const livePaper = document.getElementById("connected-paper");
   const liveStatus = document.getElementById("connected-paper-status");
   const liveEquity = document.getElementById("connected-paper-equity");
+  const liveCash = document.getElementById("connected-paper-cash");
+  const livePnl = document.getElementById("connected-paper-pnl");
+  const liveDrawdown = document.getElementById("connected-paper-drawdown");
+  const liveHistory = document.getElementById("connected-paper-history");
+  const liveChart = document.getElementById("connected-paper-chart");
   const livePositions = document.getElementById("connected-paper-positions");
   const liveOrders = document.getElementById("connected-paper-orders");
   const paramsForScreen = new URLSearchParams(location.search);
@@ -127,6 +132,46 @@ if (config?.accountMode) {
     equity.className = paperEquityTone(account.equity);
     equity.textContent = amount(account.equity);
     element.replaceChildren("Paper equity ",equity," · Cash " + amount(account.cash));
+  }
+  function renderPaperScore({account,positions,history}) {
+    liveEquity.textContent = amount(account.equity);
+    liveEquity.className = paperEquityTone(account.equity);
+    liveCash.textContent = amount(account.cash);
+    const pnl = positions.every(position=>position.unrealized != null && Number.isFinite(Number(position.unrealized)))
+      ? positions.reduce((sum,position)=>sum + Number(position.unrealized),0) : null;
+    livePnl.textContent = amount(pnl);
+
+    const points = (history ?? []).filter(point=>point.equity>0).sort((first,second)=>first.at-second.at);
+    if (points.length && Number.isFinite(account.equity) && points.at(-1).at < Date.now()) {
+      points.push({at:Date.now(),equity:account.equity});
+    }
+    liveChart.hidden = points.length < 2;
+    liveDrawdown.textContent = "Unavailable";
+    liveDrawdown.className = "";
+    liveHistory.textContent = "Alpaca equity history is unavailable.";
+    if (liveChart.hidden) return;
+
+    let peak = points[0].equity;
+    let drawdown = 0;
+    for (const point of points) {
+      peak = Math.max(peak,point.equity);
+      drawdown = Math.min(drawdown,point.equity/peak-1);
+    }
+    const first = points[0], last = points.at(-1);
+    liveDrawdown.textContent = (drawdown*100).toFixed(2) + "%";
+    liveDrawdown.className = drawdown < 0 ? "loss" : "";
+    liveHistory.textContent = "Alpaca equity history · " + et(first.at) + " to " + et(last.at);
+    const ctx = liveChart.getContext("2d");
+    if (!ctx) return;
+    const low = Math.min(...points.map(point=>point.equity));
+    const range = peak-low;
+    ctx.clearRect(0,0,liveChart.width,liveChart.height);
+    ctx.strokeStyle = last.equity < first.equity ? "#ffa3a3" : last.equity > first.equity ? "#8cf0b4" : "#afc0b7";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    points.forEach((point,index)=>ctx.lineTo(4+index*(liveChart.width-8)/(points.length-1),
+      range ? liveChart.height-8-(point.equity-low)/range*(liveChart.height-16) : liveChart.height/2));
+    ctx.stroke();
   }
   const snapshotPanel = document.getElementById("robinhood-snapshot-panel");
   const snapshotStatus = document.getElementById("robinhood-snapshot-status");
@@ -281,6 +326,11 @@ if (config?.accountMode) {
     previewStatus.textContent = "";
     livePaper.hidden = true;
     liveEquity.textContent = "";
+    liveCash.textContent = "";
+    livePnl.textContent = "";
+    liveDrawdown.textContent = "";
+    liveHistory.textContent = "";
+    liveChart.hidden = true;
     livePositions.replaceChildren();
     liveOrders.replaceChildren();
   }
@@ -288,7 +338,7 @@ if (config?.accountMode) {
     if (!onPaperScreen) return;
     const version = ++activityVersion;
     try {
-      const response = await call("paper-activity");
+      const response = await call("paper-activity?view=dashboard");
       if (version !== activityVersion) return;
       if (response.status === 401) {
         setDeviceSignIn(false);
@@ -301,7 +351,7 @@ if (config?.accountMode) {
       if (!data.connected) return clearActivity();
       livePaper.hidden = false;
       liveStatus.textContent = "";
-      showPaperBalance(liveEquity,data.account);
+      renderPaperScore(data);
       fillList(livePositions,data.positions.map(row=>row.symbol + " · " + row.quantity + " · " + amount(row.marketValue)),"No open positions.");
       fillList(liveOrders,data.orders.map(row=>[row.symbol,row.side,row.status,
         Number(row.quantity)>0 ? row.quantity + " filled at " + amount(row.averagePrice) : "",

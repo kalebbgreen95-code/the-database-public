@@ -325,3 +325,4 @@ header{flex-direction:column;align-items:stretch;gap:10px}
 
 .header-status{border-bottom:1px solid #34463e;padding-bottom:7px}
 #account-settings { margin-top: 12px; }
+.configure-footer { display:flex; justify-content:flex-end; margin-top:14px; }

@@ -1605,7 +1605,13 @@ async function loadChecklistBuys(ai = false) {
   try {
     const response = await readDemo(ai ? "/api/checklist-buys?view=ai" : "/api/checklist-buys", {signal: AbortSignal.timeout(12000)});
     if (!response.ok) throw Error("Checklist scan failed");
-    const {rows, pending, usingPrevious, failed, funds, checkedAt, source:scanSource} = await response.json();
+    const saved = await response.json();
+    const oracle = await fetch("./account-api/oracle-stock-scans?view=" + (ai ? "ai" : "stocks"),{
+      cache:"no-store",signal:AbortSignal.timeout(6500),
+    }).then(result=>result.ok ? result.json() : null).catch(()=>null);
+    const scan = oracle && Date.parse(oracle.checkedAt) >= (ai ? 0 : Date.parse(saved.checkedAt)) ? oracle : null;
+    const {rows, pending, usingPrevious, failed, funds, checkedAt, source:scanSource} =
+      {...saved,...(ai && !scan ? {source:"Saved synthetic results"} : scan)};
     await waitForDashboardPress();
     if (!ai) $("fund-status").textContent = pending ? (usingPrevious ? "Updating ETFs · Showing last completed results" : "Checking tracked ETFs…")
       : funds?.length ? "" : "No tracked ETFs found.";
@@ -1974,8 +1980,8 @@ if (refreshButton) {
         }
       }
       if (page === "ai-watchlist" || (page === "opportunities" && !liveCrypto)) {
-        status.textContent = page === "opportunities" && $("buy-asset-class").value === "stocks"
-          ? "" : "Screen recalculated from the current data.";
+        status.textContent = page === "opportunities" && $("buy-asset-class").value === "etfs"
+          ? "ETF data refreshed." : "";
         return;
       }
       showRefreshed(status);

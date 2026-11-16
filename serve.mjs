@@ -2,6 +2,7 @@ import { publicFeedUpdate } from "./lib/economic-news.mjs";
 import { refreshPublicCrypto } from "./lib/public-crypto.mjs";
 import { createBrowserPush } from "./lib/browser-push.mjs";
 import { createPaperSchedule } from "./lib/paper-schedule.mjs";
+import { createOracleStockScans } from "./lib/oracle-stock-scans.mjs";
 import manifest from "./package.json" with { type: "json" };
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
@@ -52,9 +53,32 @@ function sharedPublicUpdate(section,manual,force = false) {
   }
   return update.result;
 }
-export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tenantService,handleAuth,paperSchedule) {
+export async function handle(req,res,dir=new URL("./dist/",import.meta.url),tenantService,handleAuth,paperSchedule,stockScans) {
   res.setHeader("X-Content-Type-Options","nosniff");
   const path = req.url?.split("?")[0];
+  if (path === "/account-api/oracle-stock-scans") {
+    let reply = {status:404,data:{}};
+    if (stockScans) {
+      try {
+        reply = await stockScans({method:req.method,
+          view:new URL(req.url,"http://localhost").searchParams.get("view"),
+          credential:req.headers["x-robinhood-publisher-token"],
+          async readJson(limit) {
+            const parts = [];
+            let size = 0;
+            for await (const chunk of req) {
+              size += chunk.length;
+              if (size > limit) { req.resume(); return null; }
+              parts.push(chunk);
+            }
+            return JSON.parse(Buffer.concat(parts).toString("utf8"));
+          },
+        });
+      } catch { reply = {status:503,data:{error:"Oracle scans unavailable."}}; }
+    }
+    res.writeHead(reply.status,{"Content-Type":"application/json","Cache-Control":"no-store"}).end(JSON.stringify(reply.data));
+    return;
+  }
   if (path === "/api/version" && req.method === "GET") {
     res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"no-store"});
     res.end(JSON.stringify({version:manifest.version}));
@@ -137,6 +161,7 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   let tenantService;
   let paperSchedule;
   let handleAuth;
+  let stockScans;
   if (process.env.DEMO_ACCOUNT_ORIGIN) {
     const { createTenantService, openConnectionStore, createHostedConnectionStore, createHostedSnapshotStore } = await import("./lib/tenant-service.mjs");
     const env = Object.fromEntries(Object.entries(process.env)
@@ -188,13 +213,15 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       ? createOracleRobinhood({projectUrl:DEMO_AUTH_URL,serviceKey:DEMO_SUPABASE_SECRET_KEY,
         ownerId:env.ROBINHOOD_SNAPSHOT_OWNER_ID,token:env.ROBINHOOD_SNAPSHOT_PUBLISH_TOKEN})
       : undefined;
+    if (oracleRobinhood) stockScans = createOracleStockScans({projectUrl:DEMO_AUTH_URL,
+      serviceKey:DEMO_SUPABASE_SECRET_KEY,token:oracleRobinhood.token});
     const ownerThread = env.ROBINHOOD_SNAPSHOT_OWNER_ID && /^codex:\/\/threads\/[a-f0-9-]{36}$/i.test(env.DEMO_OWNER_THREAD_URL??"")
       ? {id:env.ROBINHOOD_SNAPSHOT_OWNER_ID,url:env.DEMO_OWNER_THREAD_URL} : undefined;
     tenantService = createTenantService({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,robinhoodSource,oracleRobinhood,ownerThread,
       appOrigin:new URL(DEMO_ACCOUNT_ORIGIN).origin,store,browserPush,paperSchedule,snapshotStore,usageStore,usageSources});
     handleAuth = createTenantAuth({authUrl:DEMO_AUTH_URL,publishableKey:DEMO_AUTH_PUBLISHABLE_KEY,appOrigin:DEMO_ACCOUNT_ORIGIN});
   }
-  const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth,paperSchedule));
+  const server = createServer((req,res)=>handle(req,res,undefined,tenantService,handleAuth,paperSchedule,stockScans));
   server.listen(Number(process.env.PORT ?? 4173),process.env.HOST || "127.0.0.1",()=>console.log("Preview: http://127.0.0.1:"+server.address().port));
 }
 import {createUsageSources} from "./lib/usage-sources.mjs";

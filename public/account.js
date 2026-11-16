@@ -349,25 +349,8 @@ if (config?.accountMode) {
   }
   const configure = document.getElementById("configure-button");
   const configureControl = document.getElementById("configure-control");
-  const configureLinks = document.getElementById("configure-links");
   configureControl.hidden = false;
-  function showConfigure(open) {
-    configureLinks.hidden = !open;
-    configure.setAttribute("aria-expanded",String(open));
-  }
-  configure.addEventListener("click",()=>showConfigure(configureLinks.hidden));
-  configureControl.addEventListener("keydown",event=>{
-    if (event.key !== "Escape" || configureLinks.hidden) return;
-    showConfigure(false);
-    configure.focus();
-  });
-  document.addEventListener("click",event=>{
-    if (!configureControl.contains(event.target)) showConfigure(false);
-  });
-  document.getElementById("configure-account").addEventListener("click",()=>{
-    showConfigure(false);
-    openAccount();
-  });
+  configure.addEventListener("click",openAccount);
   function openAccount() {
     if (!dialog.open) dialog.showModal();
     void run(update);
@@ -457,7 +440,6 @@ if (config?.accountMode) {
       }
     }));
   }
-  dialog.addEventListener("close",()=>pagePicker.focus());
   document.getElementById("account-close").addEventListener("click",()=>dialog.close());
   signIn.addEventListener("click",()=>void run(async()=>{
     const response = await call("sign-in","POST");
